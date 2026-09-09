@@ -1,0 +1,12 @@
+{
+  "name": "ghost-rp-bot",
+  "version": "1.0.0",
+  "description": "Ghost RP Discord Bot",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.24.0"
+  }
+}
