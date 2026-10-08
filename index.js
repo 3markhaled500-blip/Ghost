@@ -784,7 +784,7 @@ async function setupAttendancePanel() {
     )
     .setColor(0x57f287)
     .setFooter({
-      text: "Legend CFW • Support Attendance"
+      text: " Ghost CFW • Support Attendance"
     });
 
   const row = new ActionRowBuilder().addComponents(
