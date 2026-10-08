@@ -318,7 +318,7 @@ async function setupApplicationPanel() {
     )
     .setColor(0x5865f2)
     .setFooter({
-      text: "Legend CFW • Staff Applications"
+      text: "Ghost CFW • Staff Applications"
     });
 
   const row = new ActionRowBuilder().addComponents(
