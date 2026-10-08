@@ -1,3480 +1,2104 @@
-const {
-  Client,
-  GatewayIntentBits,
-  Partials,
-  EmbedBuilder,
-  ActionRowBuilder,
-  StringSelectMenuBuilder,
-  StringSelectMenuOptionBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  PermissionsBitField,
-  ChannelType,
-  AttachmentBuilder
-} = require("discord.js");
+require("dotenv").config();
 
 const fs = require("fs");
 const path = require("path");
 
-// ==================================================
-// CONFIG
-// ==================================================
+const {
+  Client,
+  GatewayIntentBits,
+  Partials,
+  ChannelType,
+  PermissionFlagsBits,
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  StringSelectMenuBuilder,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
+  AttachmentBuilder,
+} = require("discord.js");
 
-const TOKEN = process.env.DISCORD_TOKEN;
+/* =========================================================
+   CONFIG - YOUR IDS ONLY
+========================================================= */
 
-const PREFIX = "!";
+const CONFIG = {
+  SERVER_NAME: process.env.SERVER_NAME || "Legend CFW",
+  WELCOME_IMAGE_URL: process.env.WELCOME_IMAGE_URL || "",
 
-// ==================================================
-// WELCOME
-// ==================================================
+  // Welcome
+  WELCOME_CHANNEL_ID: "1538611932624453783",
+  AUTO_ROLE_ID: "1535765156494319726",
 
-const WELCOME_CHANNEL_ID =
-  "1538611932624453783";
+  // Staff Applications
+  STAFF_APPLICATION_CHANNEL_ID: "1545294601685049414",
+  STAFF_APPLICATION_REVIEW_CHANNEL_ID: "1547042513385164820",
+  STAFF_APPLICATION_ACCEPTED_CHANNEL_ID: "1557648907985625098",
+  STAFF_APPLICATION_REJECTED_CHANNEL_ID: "1557648827262181396",
+  STAFF_ACCEPTED_ROLE_ID: "1535798962462658651",
 
-const AUTO_ROLE_IDS = [
-  "1535767262580047923",
-  "1535763946596728902"
-];
+  // Attendance
+  ATTENDANCE_CHANNEL_ID: "1542938449445658816",
+  ATTENDANCE_LOG_CHANNEL_ID: "1542938449445658816",
 
-// ==================================================
-// TICKETS
-// ==================================================
+  // Tickets
+  TICKET_CATEGORY_ID: "1536034090082369628",
+  TICKET_LOG_CHANNEL_ID: "1542967957796290580",
 
-const TICKET_PANEL_CHANNEL_ID =
-  "1536034090082369628";
+  // Permit
+  PERMIT_ACCEPT_CHANNEL_ID: "1557646459757658152",
+  PERMIT_REJECT_CHANNEL_ID: "1557646522387005480",
+  PERMIT_PENDING_CHANNEL_ID: "1557646570642735134",
+  PERMIT_ROLE_ID: "1535764584152043601",
 
-// ==================================================
-// ADMIN APPLICATION
-// ==================================================
-
-const APPLICATION_PANEL_CHANNEL_ID =
-  "1545294601685049414";
-
-const APPLICATION_REVIEW_CHANNEL_ID =
-  "1547042513385164820";
-
-const ACCEPTED_ROLE_ID =
-  "1535798962462658651";
-
-// ==================================================
-// SUPPORT SYSTEM
-// ==================================================
-
-const SUPPORT_VOICE_CHANNEL_ID =
-  "1542938449445658816";
-
-const SUPPORT_LOG_CHANNEL_ID =
-  "1536033523834687569";
-
-const SUPPORT_STAFF_ROLE_ID =
-  "1535755112969015367";
-
-// 1 نقطة لكل دقيقة
-const SUPPORT_POINTS_PER_MINUTE = 1;
-
-// ==================================================
-// DATA FILES
-// ==================================================
-
-const APPLICATIONS_FILE =
-  path.join(__dirname, "applications.json");
-
-const SUPPORT_DATA_FILE =
-  path.join(__dirname, "support-data.json");
-
-// ==================================================
-// TICKET TYPES
-// ==================================================
-
-const TICKET_TYPES = {
-
-  support: {
-    name: "دعم فني أو اقتراحات",
-    emoji: "🎧",
-    roles: [
-      "1535756172551004322",
-      "1535755003669647410"
-    ]
-  },
-
-  moderation: {
-    name: "رقابة",
-    emoji: "🛡️",
-    roles: [
-      "1535759964235104326",
-      "1535759833427480576"
-    ]
-  },
-
-  player_complaint: {
-    name: "إبلاغ عن لاعب",
-    emoji: "👤",
-    roles: [
-      "1535754877882474557",
-      "1535754908261941350",
-      "1540288189128904724"
-    ]
-  },
-
-  bug: {
-    name: "مشكلة برمجية",
-    emoji: "🐛",
-    roles: [
-      "1535763358941192252",
-      "1535762878794305676"
-    ]
-  },
-
-  compensation: {
-    name: "تعويضات",
-    emoji: "💰",
-    roles: [
-      "1535757299505696938",
-      "1535757222515310593"
-    ]
-  },
-
-  admin_complaint: {
-    name: "شكوى ضد إداري",
-    emoji: "⚠️",
-    roles: [
-      "1535754877882474557",
-      "1536164964379660349"
-    ]
-  },
-
-  store: {
-    name: "المتجر",
-    emoji: "🛒",
-    roles: [
-      "1535769709029490778",
-      "1535769580331335680"
-    ]
-  },
-
-  voice_changer: {
-    name: "طلب تصريح تغيير الصوت",
-    emoji: "🎙️",
-    roles: [
-      "1540288189128904724",
-      "1535759964235104326"
-    ]
-  },
-
-  appeal: {
-    name: "استئناف",
-    emoji: "📋",
-    roles: [
-      "1535754877882474557",
-      "1540288189128904724"
-    ]
-  },
-
-  founders: {
-    name: "تواصل مع المؤسسين",
-    emoji: "👑",
-    roles: [
-      "1535754877882474557"
-    ]
-  },
-
-  police: {
-    name: "انضمام إلى شرطة لوس سانتوس",
-    emoji: "👮",
-    roles: [
-      "1540263682829975622",
-      "1542089930191147028"
-    ]
-  },
-
-  hospital: {
-    name: "انضمام إلى مستشفى لوس سانتوس",
-    emoji: "🏥",
-    roles: [
-      "1542234998252241016",
-      "1543249300484657336"
-    ]
-  },
-
-  high_admin: {
-    name: "إدارة عليا",
-    emoji: "👑",
-    roles: [
-      "1540288189128904724",
-      "1535754908261941350"
-    ]
-  }
-};
-
-// ==================================================
-// APPLICATION QUESTIONS
-// ==================================================
-
-const APPLICATION_QUESTIONS = [
-
-  "ما اسمك؟",
-
-  "كم عمرك؟",
-
-  "ما اسمك داخل السيرفر؟",
-
-  "ما هو ID الخاص بك داخل Discord؟",
-
-  "هل لديك خبرة سابقة في الإدارة؟ اشرح لنا خبرتك.",
-
-  "ما هي الرتب الإدارية التي حصلت عليها سابقًا؟",
-
-  "لماذا تريد الانضمام إلى طاقم الإدارة؟",
-
-  "ما الذي يمكنك تقديمه للسيرفر كإداري؟",
-
-  "كيف تتصرف مع شخص يخالف القوانين أمامك؟",
-
-  "إذا قام إداري أعلى منك بمخالفة القوانين، ماذا ستفعل؟",
-
-  "إذا حدث خلاف بين لاعبين، كيف ستتعامل مع الموقف؟",
-
-  "هل تستطيع العمل تحت الضغط؟",
-
-  "كم من الوقت تستطيع التواجد في السيرفر يوميًا؟",
-
-  "هل لديك ميكروفون ويمكنك دخول الرومات الصوتية عند الحاجة؟",
-
-  "هل قرأت قوانين السيرفر وتوافق على الالتزام بها؟",
-
-  "هل لديك أي شيء آخر تريد إضافته أو إخبار الإدارة به؟"
-];
-
-// ==================================================
-// CLIENT
-// ==================================================
-
-const client = new Client({
-
-  intents: [
-
-    GatewayIntentBits.Guilds,
-
-    GatewayIntentBits.GuildMembers,
-
-    GatewayIntentBits.GuildVoiceStates,
-
-    GatewayIntentBits.DirectMessages,
-
-    GatewayIntentBits.MessageContent
+  // Staff Roles
+  TICKET_STAFF_ROLE_IDS: [
+    "1535755153838313542",
+    "1535755234989572226",
   ],
 
-  partials: [
+  SUPPORT_STAFF_ROLE_ID: "1535755112969015367",
+};
 
-    Partials.GuildMember,
+const ALL_STAFF_ROLE_IDS = [
+  ...CONFIG.TICKET_STAFF_ROLE_IDS,
+  CONFIG.SUPPORT_STAFF_ROLE_ID,
+];
 
-    Partials.User,
+/* =========================================================
+   CLIENT
+========================================================= */
 
-    Partials.Channel
-  ]
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.DirectMessages,
+    GatewayIntentBits.GuildVoiceStates,
+  ],
+  partials: [Partials.Channel],
 });
 
-// ==================================================
-// DATA HELPERS
-// ==================================================
+/* =========================================================
+   DATABASE
+========================================================= */
 
-function loadJSON(file, defaultValue) {
+const DB_FILE = path.join(__dirname, "database.json");
 
+const DEFAULT_DB = {
+  panels: {},
+
+  attendance: {},
+
+  applications: {},
+
+  tickets: {},
+
+  stats: {
+    totalTickets: 0,
+    totalApplications: 0,
+  },
+};
+
+function loadDB() {
   try {
-
-    if (!fs.existsSync(file)) {
-
-      fs.writeFileSync(
-        file,
-        JSON.stringify(
-          defaultValue,
-          null,
-          2
-        )
-      );
-
-      return defaultValue;
+    if (!fs.existsSync(DB_FILE)) {
+      fs.writeFileSync(DB_FILE, JSON.stringify(DEFAULT_DB, null, 2));
+      return structuredClone(DEFAULT_DB);
     }
 
-    return JSON.parse(
-      fs.readFileSync(
-        file,
-        "utf8"
-      )
-    );
+    const data = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
 
-  } catch (error) {
-
-    console.error(
-      `❌ Error loading ${file}:`,
-      error
-    );
-
-    return defaultValue;
-  }
-}
-
-
-function saveJSON(file, data) {
-
-  try {
-
-    fs.writeFileSync(
-      file,
-      JSON.stringify(
-        data,
-        null,
-        2
-      )
-    );
-
-  } catch (error) {
-
-    console.error(
-      `❌ Error saving ${file}:`,
-      error
-    );
-  }
-}
-
-// ==================================================
-// DATA
-// ==================================================
-
-const applications =
-  loadJSON(
-    APPLICATIONS_FILE,
-    {}
-  );
-
-
-const supportData =
-  loadJSON(
-    SUPPORT_DATA_FILE,
-    {
-
-      users: {},
-
-      activeSessions: {},
-
-      daily: {
-
-        date: "",
-
-        totalHandled: 0,
-
-        totalTickets: 0,
-
-        members: {}
+    return {
+      ...structuredClone(DEFAULT_DB),
+      ...data,
+      panels: data.panels || {},
+      attendance: data.attendance || {},
+      applications: data.applications || {},
+      tickets: data.tickets || {},
+      stats: {
+        ...DEFAULT_DB.stats,
+        ...(data.stats || {}),
       },
-
-      handledTickets: {}
-    }
-  );
-
-// ==================================================
-// SUPPORT DATA MIGRATION
-// ==================================================
-
-function prepareSupportData() {
-
-  if (!supportData.users)
-    supportData.users = {};
-
-  if (!supportData.activeSessions)
-    supportData.activeSessions = {};
-
-  if (!supportData.daily)
-    supportData.daily = {};
-
-  if (!supportData.handledTickets)
-    supportData.handledTickets = {};
-
-  if (!supportData.daily.date)
-    supportData.daily.date = getTodayDate();
-
-  if (
-    typeof supportData.daily.totalHandled !==
-    "number"
-  )
-    supportData.daily.totalHandled = 0;
-
-  if (
-    typeof supportData.daily.totalTickets !==
-    "number"
-  )
-    supportData.daily.totalTickets = 0;
-
-  if (!supportData.daily.members)
-    supportData.daily.members = {};
-
-  saveJSON(
-    SUPPORT_DATA_FILE,
-    supportData
-  );
+    };
+  } catch (error) {
+    console.error("DATABASE LOAD ERROR:", error);
+    return structuredClone(DEFAULT_DB);
+  }
 }
 
-prepareSupportData();
+let db = loadDB();
 
-// ==================================================
-// UTILITY
-// ==================================================
-
-function getTodayDate() {
-
-  return new Date()
-    .toISOString()
-    .slice(0, 10);
+function saveDB() {
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
+  } catch (error) {
+    console.error("DATABASE SAVE ERROR:", error);
+  }
 }
 
+/* =========================================================
+   HELPERS
+========================================================= */
 
-function formatDuration(ms) {
+function formatDuration(totalSeconds) {
+  totalSeconds = Math.max(0, Math.floor(totalSeconds));
 
-  const totalSeconds =
-    Math.floor(ms / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  totalSeconds %= 86400;
 
-  const days =
-    Math.floor(
-      totalSeconds / 86400
-    );
+  const hours = Math.floor(totalSeconds / 3600);
+  totalSeconds %= 3600;
 
-  const hours =
-    Math.floor(
-      (totalSeconds % 86400) /
-      3600
-    );
-
-  const minutes =
-    Math.floor(
-      (totalSeconds % 3600) /
-      60
-    );
-
-  const seconds =
-    totalSeconds % 60;
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
 
   const parts = [];
 
-  if (days > 0)
-    parts.push(`${days} يوم`);
-
-  if (hours > 0)
-    parts.push(`${hours} ساعة`);
-
-  if (minutes > 0)
-    parts.push(`${minutes} دقيقة`);
-
-  if (
-    seconds > 0 ||
-    parts.length === 0
-  )
-    parts.push(`${seconds} ثانية`);
+  if (days) parts.push(`${days} يوم`);
+  if (hours) parts.push(`${hours} ساعة`);
+  if (minutes) parts.push(`${minutes} دقيقة`);
+  if (seconds || parts.length === 0) parts.push(`${seconds} ثانية`);
 
   return parts.join(" و ");
 }
 
-
-function formatShortDuration(ms) {
-
-  const totalMinutes =
-    Math.floor(
-      ms / 60000
-    );
-
-  const hours =
-    Math.floor(
-      totalMinutes / 60
-    );
-
-  const minutes =
-    totalMinutes % 60;
-
-  if (hours > 0) {
-
-    return `${hours}س ${minutes}د`;
-  }
-
-  return `${minutes}د`;
-}
-
-// ==================================================
-// SUPPORT USER
-// ==================================================
-
-function getSupportUser(userId) {
-
-  if (!supportData.users[userId]) {
-
-    supportData.users[userId] = {
-
-      totalMilliseconds: 0,
-
-      points: 0,
-
-      sessions: 0,
-
-      today: {
-
-        handled: 0,
-
-        tickets: 0,
-
-        sessions: 0,
-
-        points: 0,
-
-        milliseconds: 0
-      }
-    };
-  }
-
-
-  if (
-    !supportData.users[userId].today
-  ) {
-
-    supportData.users[userId].today = {
-
-      handled: 0,
-
-      tickets: 0,
-
-      sessions: 0,
-
-      points: 0,
-
-      milliseconds: 0
-    };
-  }
-
-
-  return supportData.users[userId];
-}
-
-// ==================================================
-// RESET DAILY STATS
-// ==================================================
-
-function resetDailyStatsIfNeeded() {
-
-  const today =
-    getTodayDate();
-
-
-  if (
-    supportData.daily.date !==
-    today
-  ) {
-
-    supportData.daily = {
-
-      date: today,
-
-      totalHandled: 0,
-
-      totalTickets: 0,
-
-      members: {}
-    };
-
-
-    for (
-      const userId of
-      Object.keys(
-        supportData.users
-      )
-    ) {
-
-      supportData.users[userId].today = {
-
-        handled: 0,
-
-        tickets: 0,
-
-        sessions: 0,
-
-        points: 0,
-
-        milliseconds: 0
-      };
-    }
-
-
-    supportData.handledTickets = {};
-
-
-    saveJSON(
-      SUPPORT_DATA_FILE,
-      supportData
-    );
-  }
-}
-
-
-function getTodayStats(userId) {
-
-  resetDailyStatsIfNeeded();
-
-  return getSupportUser(userId).today;
-}
-
-// ==================================================
-// REGISTER HANDLED TICKET
-// ==================================================
-
-function addHandledMember(
-  staffId,
-  memberId,
-  ticketId
-) {
-
-  resetDailyStatsIfNeeded();
-
-
-  const today =
-    supportData.daily.date;
-
-
-  if (
-    !supportData.handledTickets[today]
-  ) {
-
-    supportData.handledTickets[today] = {};
-  }
-
-
-  if (
-    supportData.handledTickets[today][ticketId]
-  ) {
-
-    return false;
-  }
-
-
-  supportData.handledTickets[today][ticketId] = {
-
-    staffId,
-
-    memberId,
-
-    handledAt:
-      new Date().toISOString()
-  };
-
-
-  const stats =
-    getTodayStats(staffId);
-
-
-  stats.handled++;
-
-  stats.tickets++;
-
-
-  supportData.daily.totalHandled++;
-
-  supportData.daily.totalTickets++;
-
-
-  // عدد الأعضاء الفريدين الذين تم التعامل معهم
-
-  if (
-    !supportData.daily.members[memberId]
-  ) {
-
-    supportData.daily.members[memberId] = {
-
-      firstHandledBy: staffId,
-
-      firstHandledAt:
-        new Date().toISOString()
-    };
-  }
-
-
-  saveJSON(
-    SUPPORT_DATA_FILE,
-    supportData
-  );
-
-
-  return true;
-}
-
-// ==================================================
-// READY
-// ==================================================
-
-client.once(
-  "ready",
-  async () => {
-
-    console.log(
-      `✅ Logged in as ${client.user.tag}`
-    );
-
-
-    client.user.setPresence({
-
-      activities: [
-
-        {
-          name: "Ghost RP",
-
-          type: 3
-        }
-      ],
-
-      status: "online"
-    });
-
-
-    resetDailyStatsIfNeeded();
-
-
-    await setupTicketPanel();
-
-    await setupApplicationPanel();
-
-    await restoreSupportSessions();
-
-
-    console.log(
-      "✅ All systems are ready."
-    );
-  }
-);
-
-// ==================================================
-// MEMBER JOIN
-// ==================================================
-
-client.on(
-  "guildMemberAdd",
-  async member => {
-
-    try {
-
-      // إعطاء الرولات
-
-      for (
-        const roleId of AUTO_ROLE_IDS
-      ) {
-
-        const role =
-          member.guild.roles.cache.get(
-            roleId
-          );
-
-
-        if (role) {
-
-          await member.roles
-            .add(role)
-            .catch(() => {});
-        }
-      }
-
-
-      // روم الترحيب
-
-      const welcomeChannel =
-        member.guild.channels.cache.get(
-          WELCOME_CHANNEL_ID
-        );
-
-
-      if (!welcomeChannel)
-        return;
-
-
-      const embed =
-        new EmbedBuilder()
-
-          .setColor("#1683ff")
-
-          .setTitle(
-            "👋 مرحباً بك في Ghost RP"
-          )
-
-          .setDescription(
-
-            `أهلاً وسهلاً بك ${member} ❤️\n\n` +
-
-            `نورت سيرفر **Ghost FiveM Roleplay**\n\n` +
-
-            `نتمنى لك تجربة ممتعة ومميزة معنا.\n\n` +
-
-            `📜 يرجى قراءة القوانين والالتزام بأنظمة السيرفر.\n` +
-
-            `🎫 إذا احتجت أي مساعدة يمكنك فتح تذكرة من قسم الدعم.`
-          )
-
-          .setThumbnail(
-            member.user.displayAvatarURL({
-              dynamic: true,
-              size: 256
-            })
-          )
-
-          .setFooter({
-
-            text:
-              "Ghost FiveM Roleplay"
-          })
-
-          .setTimestamp();
-
-
-      const bannerPath =
-        path.join(
-          __dirname,
-          "banner.png"
-        );
-
-
-      if (
-        fs.existsSync(bannerPath)
-      ) {
-
-        const banner =
-          new AttachmentBuilder(
-            bannerPath,
-            {
-              name:
-                "ghost-banner.png"
-            }
-          );
-
-
-        embed.setImage(
-          "attachment://ghost-banner.png"
-        );
-
-
-        await welcomeChannel.send({
-
-          content:
-            `👋 نورتنا ${member}!`,
-
-          embeds: [embed],
-
-          files: [banner]
-        });
-
-      } else {
-
-        await welcomeChannel.send({
-
-          content:
-            `👋 نورتنا ${member}!`,
-
-          embeds: [embed]
-        });
-      }
-
-    } catch (error) {
-
-      console.error(
-        "❌ Welcome Error:",
-        error
-      );
-    }
-  }
-);
-
-// ==================================================
-// TICKET PANEL
-// ==================================================
-
-async function setupTicketPanel() {
-
-  try {
-
-    const channel =
-      await client.channels.fetch(
-        TICKET_PANEL_CHANNEL_ID
-      );
-
-
-    if (!channel) {
-
-      console.log(
-        "❌ لم يتم العثور على روم التذاكر."
-      );
-
-      return;
-    }
-
-
-    const options =
-      Object.entries(
-        TICKET_TYPES
-      ).map(
-        ([value, ticket]) => {
-
-          return new StringSelectMenuOptionBuilder()
-
-            .setLabel(
-              ticket.name
-            )
-
-            .setDescription(
-              `فتح تذكرة ${ticket.name}`
-            )
-
-            .setValue(value)
-
-            .setEmoji(
-              ticket.emoji
-            );
-        }
-      );
-
-
-    const menu =
-      new StringSelectMenuBuilder()
-
-        .setCustomId(
-          "ticket_select"
-        )
-
-        .setPlaceholder(
-          "🎫 اختر نوع التذكرة"
-        )
-
-        .addOptions(
-          options
-        );
-
-
-    const row =
-      new ActionRowBuilder()
-        .addComponents(
-          menu
-        );
-
-
-    const embed =
-      new EmbedBuilder()
-
-        .setColor("#1683ff")
-
-        .setTitle(
-          "🎫 نظام التذاكر - Ghost RP"
-        )
-
-        .setDescription(
-
-          "**مرحباً بك في نظام التذاكر**\n\n" +
-
-          "اختر القسم المناسب لمشكلتك من القائمة بالأسفل.\n\n" +
-
-          "🔒 كل تذكرة تكون خاصة بصاحبها والمسؤولين المختصين بالقسم فقط.\n\n" +
-
-          "📢 عند فتح التذكرة سيتم عمل Mention للمسؤولين المختصين تلقائياً.\n\n" +
-
-          "⚠️ يرجى عدم فتح تذكرة بدون سبب."
-        )
-
-        .setFooter({
-
-          text:
-            "Ghost FiveM Roleplay • Ticket System"
-        })
-
-        .setTimestamp();
-
-
-    const messages =
-      await channel.messages.fetch({
-        limit: 50
-      });
-
-
-    const oldPanel =
-      messages.find(
-        msg =>
-          msg.author.id ===
-            client.user.id &&
-
-          msg.components.some(
-            row =>
-              row.components.some(
-                component =>
-                  component.customId ===
-                  "ticket_select"
-              )
-          )
-      );
-
-
-    if (oldPanel) {
-
-      await oldPanel.edit({
-
-        embeds: [embed],
-
-        components: [row]
-      });
-
-      console.log(
-        "✅ تم تحديث لوحة التذاكر."
-      );
-
-    } else {
-
-      await channel.send({
-
-        embeds: [embed],
-
-        components: [row]
-      });
-
-      console.log(
-        "✅ تم إرسال لوحة التذاكر."
-      );
-    }
-
-  } catch (error) {
-
-    console.error(
-      "❌ Ticket Panel Error:",
-      error
-    );
-  }
-}
-
-// ==================================================
-// APPLICATION PANEL
-// ==================================================
-
-async function setupApplicationPanel() {
-
-  try {
-
-    const channel =
-      await client.channels.fetch(
-        APPLICATION_PANEL_CHANNEL_ID
-      );
-
-
-    if (!channel) {
-
-      console.log(
-        "❌ Application Panel Channel not found."
-      );
-
-      return;
-    }
-
-
-    const button =
-      new ButtonBuilder()
-
-        .setCustomId(
-          "start_admin_application"
-        )
-
-        .setLabel(
-          "تقديم على الإدارة"
-        )
-
-        .setEmoji("📝")
-
-        .setStyle(
-          ButtonStyle.Primary
-        );
-
-
-    const row =
-      new ActionRowBuilder()
-        .addComponents(
-          button
-        );
-
-
-    const embed =
-      new EmbedBuilder()
-
-        .setColor("#1683ff")
-
-        .setTitle(
-          "🛡️ التقديم على طاقم الإدارة"
-        )
-
-        .setDescription(
-
-          "هل ترى أنك مناسب للانضمام إلى طاقم الإدارة؟\n\n" +
-
-          "اضغط على زر **تقديم على الإدارة** بالأسفل لبدء التقديم.\n\n" +
-
-          "📩 سيتم إرسال أسئلة التقديم إليك في الخاص.\n\n" +
-
-          "⚠️ يرجى الإجابة على جميع الأسئلة بصدق ووضوح.\n\n" +
-
-          "⏱️ لديك وقت محدد للإجابة على كل سؤال.\n\n" +
-
-          "📋 بعد الانتهاء سيتم إرسال طلبك إلى الإدارة للمراجعة."
-        )
-
-        .setFooter({
-
-          text:
-            "Ghost FiveM Roleplay • Administration Applications"
-        })
-
-        .setTimestamp();
-
-
-    const messages =
-      await channel.messages.fetch({
-        limit: 50
-      });
-
-
-    const oldPanel =
-      messages.find(
-        msg =>
-          msg.author.id ===
-            client.user.id &&
-
-          msg.components.some(
-            row =>
-              row.components.some(
-                component =>
-                  component.customId ===
-                  "start_admin_application"
-              )
-          )
-      );
-
-
-    if (oldPanel) {
-
-      await oldPanel.edit({
-
-        embeds: [embed],
-
-        components: [row]
-      });
-
-    } else {
-
-      await channel.send({
-
-        embeds: [embed],
-
-        components: [row]
-      });
-    }
-
-  } catch (error) {
-
-    console.error(
-      "❌ Application Panel Error:",
-      error
-    );
-  }
-}
-
-// ==================================================
-// START APPLICATION
-// ==================================================
-
-async function startApplication(
-  interaction
-) {
-
-  const userId =
-    interaction.user.id;
-
-
-  if (
-    applications[userId] &&
-    applications[userId].status ===
-      "pending"
-  ) {
-
-    return interaction.reply({
-
-      content:
-        "❌ لديك طلب تقديم قيد المراجعة بالفعل.",
-
-      ephemeral: true
-    });
-  }
-
-
-  await interaction.reply({
-
-    content:
-      "📩 تم إرسال التقديم إلى الخاص، افتح الـDM مع البوت.",
-
-    ephemeral: true
+function formatDate(timestamp) {
+  if (!timestamp) return "غير متوفر";
+
+  return new Date(timestamp).toLocaleString("ar-EG", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Africa/Cairo",
   });
-
-
-  let dm;
-
-
-  try {
-
-    dm =
-      await interaction.user.createDM();
-
-    await dm.send(
-
-      "🛡️ **بدأنا تقديم الإدارة**\n\n" +
-
-      "سأرسل لك الأسئلة واحدًا تلو الآخر.\n" +
-
-      "أرسل إجابتك فقط لكل سؤال.\n\n" +
-
-      "⏱️ لديك **10 دقائق** للإجابة على كل سؤال.\n\n" +
-
-      "اكتب `إلغاء` في أي وقت إذا أردت إلغاء التقديم."
-    );
-
-  } catch (error) {
-
-    console.error(
-      "❌ Cannot DM applicant:",
-      error
-    );
-
-    return;
-  }
-
-
-  const answers = {};
-
-
-  for (
-    let i = 0;
-    i < APPLICATION_QUESTIONS.length;
-    i++
-  ) {
-
-    const question =
-      APPLICATION_QUESTIONS[i];
-
-
-    await dm.send(
-
-      `**السؤال ${i + 1} من ${APPLICATION_QUESTIONS.length}:**\n\n` +
-
-      question
-    );
-
-
-    try {
-
-      const collected =
-        await dm.awaitMessages({
-
-          filter:
-            message =>
-              message.author.id ===
-              interaction.user.id,
-
-          max: 1,
-
-          time:
-            10 * 60 * 1000,
-
-          errors: ["time"]
-        });
-
-
-      const answer =
-        collected
-          .first()
-          .content
-          .trim();
-
-
-      if (
-        answer.toLowerCase() ===
-        "إلغاء"
-      ) {
-
-        await dm.send(
-          "❌ تم إلغاء طلب التقديم."
-        );
-
-        return;
-      }
-
-
-      answers[i + 1] =
-        answer;
-
-    } catch (error) {
-
-      await dm.send(
-
-        "⏰ انتهى الوقت المحدد للإجابة.\n" +
-
-        "❌ تم إلغاء طلب التقديم."
-      );
-
-      return;
-    }
-  }
-
-
-  const applicationId =
-    `${Date.now()}-${userId}`;
-
-
-  applications[userId] = {
-
-    id:
-      applicationId,
-
-    userId,
-
-    username:
-      interaction.user.tag,
-
-    status:
-      "pending",
-
-    answers,
-
-    createdAt:
-      new Date().toISOString()
-  };
-
-
-  saveJSON(
-    APPLICATIONS_FILE,
-    applications
-  );
-
-
-  await sendApplicationForReview(
-
-    interaction.guild,
-
-    interaction.user,
-
-    applications[userId]
-  );
-
-
-  await dm.send(
-
-    "✅ **تم إرسال طلبك بنجاح!**\n\n" +
-
-    "تم إرسال الطلب إلى الإدارة للمراجعة.\n" +
-
-    "يرجى انتظار النتيجة."
-  );
 }
 
-// ==================================================
-// SEND APPLICATION REVIEW
-// ==================================================
+function memberIsAnyStaff(member) {
+  if (!member) return false;
 
-async function sendApplicationForReview(
-  guild,
-  user,
-  application
-) {
-
-  try {
-
-    const channel =
-      await guild.channels.fetch(
-        APPLICATION_REVIEW_CHANNEL_ID
-      );
-
-
-    if (!channel)
-      return;
-
-
-    const description =
-      APPLICATION_QUESTIONS
-        .map(
-          (question, index) => {
-
-            const answer =
-              application.answers[
-                index + 1
-              ] ||
-              "لم يتم الرد";
-
-
-            return (
-
-              `**${index + 1}. ${question}**\n` +
-
-              `${answer}`
-            );
-          }
-        )
-        .join("\n\n");
-
-
-    const embed =
-      new EmbedBuilder()
-
-        .setColor("#f1c40f")
-
-        .setTitle(
-          "📝 طلب تقديم إدارة جديد"
-        )
-
-        .setDescription(
-          description
-        )
-
-        .addFields({
-
-          name:
-            "👤 المتقدم",
-
-          value:
-            `${user}\n\`${user.tag}\`\nID: \`${user.id}\``
-        })
-
-        .setFooter({
-
-          text:
-            `Application ID: ${application.id}`
-        })
-
-        .setTimestamp();
-
-
-    const acceptButton =
-      new ButtonBuilder()
-
-        .setCustomId(
-          `application_accept_${application.id}`
-        )
-
-        .setLabel("قبول")
-
-        .setEmoji("✅")
-
-        .setStyle(
-          ButtonStyle.Success
-        );
-
-
-    const rejectButton =
-      new ButtonBuilder()
-
-        .setCustomId(
-          `application_reject_${application.id}`
-        )
-
-        .setLabel("رفض")
-
-        .setEmoji("❌")
-
-        .setStyle(
-          ButtonStyle.Danger
-        );
-
-
-    const row =
-      new ActionRowBuilder()
-        .addComponents(
-
-          acceptButton,
-
-          rejectButton
-        );
-
-
-    const message =
-      await channel.send({
-
-        content:
-          `<@&${SUPPORT_STAFF_ROLE_ID}>`,
-
-        embeds: [embed],
-
-        components: [row]
-      });
-
-
-    applications[
-      application.userId
-    ].reviewMessageId =
-      message.id;
-
-
-    saveJSON(
-      APPLICATIONS_FILE,
-      applications
-    );
-
-  } catch (error) {
-
-    console.error(
-      "❌ Send Application Error:",
-      error
-    );
-  }
-}
-
-// ==================================================
-// APPLICATION PERMISSION
-// ==================================================
-
-function canReviewApplication(
-  interaction
-) {
-
-  if (!interaction.member)
-    return false;
-
-
-  if (
-    interaction.member.permissions.has(
-      PermissionsBitField.Flags.Administrator
-    )
-  ) {
-
+  if (member.permissions?.has(PermissionFlagsBits.Administrator)) {
     return true;
   }
 
-
-  return interaction.member.roles.cache.has(
-    SUPPORT_STAFF_ROLE_ID
+  return ALL_STAFF_ROLE_IDS.some((roleId) =>
+    member.roles.cache.has(roleId)
   );
 }
 
-// ==================================================
-// ACCEPT / REJECT
-// ==================================================
+function memberIsTicketStaff(member) {
+  if (!member) return false;
 
-async function handleApplicationDecision(
-  interaction,
-  accepted
-) {
-
-  if (
-    !canReviewApplication(
-      interaction
-    )
-  ) {
-
-    return interaction.reply({
-
-      content:
-        "❌ ليس لديك صلاحية لمراجعة طلبات الإدارة.",
-
-      ephemeral: true
-    });
+  if (member.permissions?.has(PermissionFlagsBits.Administrator)) {
+    return true;
   }
 
-
-  const parts =
-    interaction.customId.split("_");
-
-
-  const applicationId =
-    parts.slice(2).join("_");
-
-
-  const application =
-    Object.values(
-      applications
-    ).find(
-      app =>
-        app.id ===
-        applicationId
-    );
-
-
-  if (!application) {
-
-    return interaction.reply({
-
-      content:
-        "❌ لم يتم العثور على طلب التقديم.",
-
-      ephemeral: true
-    });
-  }
-
-
-  if (
-    application.status !==
-    "pending"
-  ) {
-
-    return interaction.reply({
-
-      content:
-        "⚠️ تم اتخاذ قرار في هذا الطلب مسبقًا.",
-
-      ephemeral: true
-    });
-  }
-
-
-  const guild =
-    interaction.guild;
-
-
-  const member =
-    await guild.members
-      .fetch(
-        application.userId
-      )
-      .catch(
-        () => null
-      );
-
-
-  application.status =
-    accepted
-      ? "accepted"
-      : "rejected";
-
-
-  application.reviewedBy =
-    interaction.user.id;
-
-
-  application.reviewedAt =
-    new Date().toISOString();
-
-
-  saveJSON(
-    APPLICATIONS_FILE,
-    applications
+  return (
+    CONFIG.TICKET_STAFF_ROLE_IDS.some((roleId) =>
+      member.roles.cache.has(roleId)
+    ) ||
+    member.roles.cache.has(CONFIG.SUPPORT_STAFF_ROLE_ID)
   );
+}
 
+function memberIsSupportStaff(member) {
+  if (!member) return false;
 
-  if (
-    accepted &&
-    member
-  ) {
+  if (member.permissions?.has(PermissionFlagsBits.Administrator)) {
+    return true;
+  }
 
-    const role =
-      guild.roles.cache.get(
-        ACCEPTED_ROLE_ID
-      );
+  return member.roles.cache.has(CONFIG.SUPPORT_STAFF_ROLE_ID);
+}
 
+function getAttendance(userId) {
+  if (!db.attendance[userId]) {
+    db.attendance[userId] = {
+      active: false,
+      startedAt: null,
+      currentStartAt: null,
+
+      totalSeconds: 0,
+      voiceSeconds: 0,
+
+      voiceJoinedAt: null,
+
+      shifts: 0,
+      points: 0,
+
+      ticketsClaimed: 0,
+      ticketsClosed: 0,
+
+      lastCheckIn: null,
+      lastCheckOut: null,
+    };
+  }
+
+  return db.attendance[userId];
+}
+
+function addPoints(userId, amount) {
+  const attendance = getAttendance(userId);
+  attendance.points += amount;
+  saveDB();
+}
+
+async function getChannel(channelId) {
+  try {
+    return await client.channels.fetch(channelId);
+  } catch {
+    return null;
+  }
+}
+
+async function getGuild() {
+  const channel =
+    (await getChannel(CONFIG.WELCOME_CHANNEL_ID)) ||
+    (await getChannel(CONFIG.ATTENDANCE_CHANNEL_ID));
+
+  return channel?.guild || null;
+}
+
+function buildDisabledStaffButtons(userId) {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`staff_accept_${userId}`)
+      .setLabel("قبول")
+      .setStyle(ButtonStyle.Success)
+      .setDisabled(true),
+
+    new ButtonBuilder()
+      .setCustomId(`staff_reject_${userId}`)
+      .setLabel("رفض")
+      .setStyle(ButtonStyle.Danger)
+      .setDisabled(true),
+
+    new ButtonBuilder()
+      .setCustomId(`staff_pending_${userId}`)
+      .setLabel("قيد المراجعة")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(true)
+  );
+}
+
+async function upsertPanel(key, channel, payload) {
+  if (!channel || !channel.isTextBased()) return null;
+
+  let message = null;
+
+  if (db.panels[key]) {
+    try {
+      message = await channel.messages.fetch(db.panels[key]);
+    } catch {
+      message = null;
+    }
+  }
+
+  if (!message) {
+    try {
+      const messages = await channel.messages.fetch({ limit: 30 });
+
+      message =
+        messages.find(
+          (msg) =>
+            msg.author.id === client.user.id &&
+            msg.embeds?.[0]?.footer?.text === `LEGEND_PANEL:${key}`
+        ) || null;
+    } catch {
+      message = null;
+    }
+  }
+
+  if (message) {
+    await message.edit(payload).catch(() => {});
+  } else {
+    message = await channel.send(payload).catch(() => null);
+  }
+
+  if (message) {
+    db.panels[key] = message.id;
+    saveDB();
+  }
+
+  return message;
+}
+
+/* =========================================================
+   WELCOME
+========================================================= */
+
+client.on("guildMemberAdd", async (member) => {
+  try {
+    const role = member.guild.roles.cache.get(CONFIG.AUTO_ROLE_ID);
 
     if (role) {
-
-      await member.roles
-        .add(role)
-        .catch(
-          error =>
-            console.error(
-              "❌ Accepted Role Error:",
-              error
-            )
-        );
-    }
-  }
-
-
-  const resultColor =
-    accepted
-      ? "#2ecc71"
-      : "#e74c3c";
-
-
-  const resultText =
-    accepted
-      ? "تم قبول المتقدم مبدئيًا"
-      : "تم رفض طلب التقديم";
-
-
-  const updatedEmbed =
-    EmbedBuilder.from(
-      interaction.message.embeds[0]
-    )
-
-      .setColor(
-        resultColor
-      )
-
-      .addFields({
-
-        name:
-          "📌 النتيجة",
-
-        value:
-          `${accepted ? "✅" : "❌"} ${resultText}\n` +
-          `بواسطة: ${interaction.user}`
+      await member.roles.add(role).catch((error) => {
+        console.error("AUTO ROLE ERROR:", error.message);
       });
-
-
-  const disabledRow =
-    new ActionRowBuilder()
-      .addComponents(
-
-        new ButtonBuilder()
-
-          .setCustomId(
-            `application_accept_disabled_${applicationId}`
-          )
-
-          .setLabel("قبول")
-
-          .setEmoji("✅")
-
-          .setStyle(
-            ButtonStyle.Success
-          )
-
-          .setDisabled(true),
-
-
-        new ButtonBuilder()
-
-          .setCustomId(
-            `application_reject_disabled_${applicationId}`
-          )
-
-          .setLabel("رفض")
-
-          .setEmoji("❌")
-
-          .setStyle(
-            ButtonStyle.Danger
-          )
-
-          .setDisabled(true)
-      );
-
-
-  await interaction.update({
-
-    embeds: [
-      updatedEmbed
-    ],
-
-    components: [
-      disabledRow
-    ]
-  });
-
-
-  try {
-
-    const user =
-      await client.users.fetch(
-        application.userId
-      );
-
-
-    if (accepted) {
-
-      await user.send(
-
-        "🎉 **تم قبول طلبك مبدئيًا!**\n\n" +
-
-        "تمت الموافقة على طلب تقديمك للإدارة.\n" +
-
-        "يرجى انتظار تعليمات الإدارة القادمة."
-      );
-
-    } else {
-
-      await user.send(
-
-        "❌ **تم رفض طلب تقديمك.**\n\n" +
-
-        "يمكنك المحاولة مرة أخرى في المستقبل."
-      );
     }
 
-  } catch (error) {
-
-    console.log(
-      "⚠️ Cannot DM application result."
-    );
-  }
-}
-
-// ==================================================
-// SUPPORT SESSION START
-// ==================================================
-
-async function startSupportSession(
-  member
-) {
-
-  resetDailyStatsIfNeeded();
-
-
-  const userId =
-    member.id;
-
-
-  if (
-    supportData.activeSessions[
-      userId
-    ]
-  ) {
-
-    return;
-  }
-
-
-  supportData.activeSessions[
-    userId
-  ] = {
-
-    guildId:
-      member.guild.id,
-
-    channelId:
-      SUPPORT_VOICE_CHANNEL_ID,
-
-    startedAt:
-      Date.now()
-  };
-
-
-  const user =
-    getSupportUser(
-      userId
+    const channel = member.guild.channels.cache.get(
+      CONFIG.WELCOME_CHANNEL_ID
     );
 
+    if (!channel || !channel.isTextBased()) return;
 
-  const today =
-    getTodayStats(
-      userId
-    );
-
-
-  user.sessions++;
-
-  today.sessions++;
-
-
-  saveJSON(
-    SUPPORT_DATA_FILE,
-    supportData
-  );
-
-
-  await sendSupportLog(
-
-    member.guild,
-
-    new EmbedBuilder()
-
-      .setColor(
-        "#2ecc71"
-      )
-
-      .setTitle(
-        "🎧 دخول الدعم الفني"
-      )
-
+    const embed = new EmbedBuilder()
+      .setTitle(`أهلاً وسهلاً بك في ${CONFIG.SERVER_NAME}`)
       .setDescription(
-        `${member} دخل روم الدعم الفني.`
+        `أهلاً بك ${member}\n\n` +
+          `نتمنى لك وقتًا ممتعًا في السيرفر.\n` +
+          `يرجى قراءة القوانين والالتزام بأنظمة السيرفر.`
       )
-
-      .addFields(
-
-        {
-          name:
-            "👤 العضو",
-
-          value:
-            `${member}\n\`${member.user.tag}\``
-        },
-
-        {
-          name:
-            "🆔 ID",
-
-          value:
-            `\`${member.id}\``
-        },
-
-        {
-          name:
-            "📅 وقت الدخول",
-
-          value:
-            `<t:${Math.floor(
-              Date.now() / 1000
-            )}:F>`
-        }
-      )
-
-      .setTimestamp()
-  );
-}
-
-// ==================================================
-// SUPPORT SESSION END
-// ==================================================
-
-async function endSupportSession(
-  member
-) {
-
-  resetDailyStatsIfNeeded();
-
-
-  const userId =
-    member.id;
-
-
-  const session =
-    supportData.activeSessions[
-      userId
-    ];
-
-
-  if (!session)
-    return;
-
-
-  const now =
-    Date.now();
-
-
-  const duration =
-    now -
-    session.startedAt;
-
-
-  const user =
-    getSupportUser(
-      userId
-    );
-
-
-  const today =
-    getTodayStats(
-      userId
-    );
-
-
-  user.totalMilliseconds +=
-    duration;
-
-
-  today.milliseconds +=
-    duration;
-
-
-  const points =
-    Math.floor(
-      duration / 60000
-    ) *
-    SUPPORT_POINTS_PER_MINUTE;
-
-
-  user.points +=
-    points;
-
-
-  today.points +=
-    points;
-
-
-  delete supportData.activeSessions[
-    userId
-  ];
-
-
-  saveJSON(
-    SUPPORT_DATA_FILE,
-    supportData
-  );
-
-
-  await sendSupportLog(
-
-    member.guild,
-
-    new EmbedBuilder()
-
-      .setColor(
-        "#e74c3c"
-      )
-
-      .setTitle(
-        "🎧 خروج من الدعم الفني"
-      )
-
-      .setDescription(
-        `${member} خرج من روم الدعم الفني.`
-      )
-
-      .addFields(
-
-        {
-          name:
-            "👤 العضو",
-
-          value:
-            `${member}\n\`${member.user.tag}\``
-        },
-
-        {
-          name:
-            "⏱️ مدة الجلسة",
-
-          value:
-            formatDuration(
-              duration
-            )
-        },
-
-        {
-          name:
-            "⭐ نقاط الجلسة",
-
-          value:
-            `${points} نقطة`
-        },
-
-        {
-          name:
-            "📊 إجمالي الوقت",
-
-          value:
-            formatDuration(
-              user.totalMilliseconds
-            )
-        },
-
-        {
-          name:
-            "🏆 إجمالي النقاط",
-
-          value:
-            `${user.points} نقطة`
-        }
-      )
-
-      .setTimestamp()
-  );
-}
-
-// ==================================================
-// SUPPORT LOG
-// ==================================================
-
-async function sendSupportLog(
-  guild,
-  embed
-) {
-
-  try {
-
-    const channel =
-      guild.channels.cache.get(
-        SUPPORT_LOG_CHANNEL_ID
-      );
-
-
-    if (!channel)
-      return;
-
+      .addFields({
+        name: "👤 العضو",
+        value: `${member}`,
+        inline: true,
+      })
+      .setColor(0x2b2d31)
+      .setTimestamp();
+
+    if (CONFIG.WELCOME_IMAGE_URL) {
+      embed.setImage(CONFIG.WELCOME_IMAGE_URL);
+    }
 
     await channel.send({
+      content: `مرحباً ${member}`,
+      embeds: [embed],
+    });
+  } catch (error) {
+    console.error("WELCOME ERROR:", error);
+  }
+});
 
-      embeds: [embed]
+/* =========================================================
+   STAFF APPLICATION PANEL
+========================================================= */
+
+async function setupStaffApplicationPanel() {
+  const channel = await getChannel(
+    CONFIG.STAFF_APPLICATION_CHANNEL_ID
+  );
+
+  if (!channel || !channel.isTextBased()) return;
+
+  const embed = new EmbedBuilder()
+    .setTitle("📋 التقديم على الإدارة")
+    .setDescription(
+      "للتقديم على الإدارة اضغط على الزر بالأسفل.\n\n" +
+        "سيتم إرسال أسئلة التقديم لك في الخاص **DM**.\n" +
+        "بعد الانتهاء سيتم إرسال طلبك للإدارة للمراجعة."
+    )
+    .setColor(0x5865f2)
+    .setFooter({
+      text: "LEGEND_PANEL:staff_application",
     });
 
-  } catch (error) {
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId("staff_apply")
+      .setLabel("تقديم على الإدارة")
+      .setEmoji("📋")
+      .setStyle(ButtonStyle.Primary)
+  );
 
-    console.error(
-      "❌ Support Log Error:",
-      error
-    );
-  }
+  await upsertPanel("staff_application", channel, {
+    embeds: [embed],
+    components: [row],
+  });
 }
 
-// ==================================================
-// RESTORE SUPPORT SESSIONS
-// ==================================================
+/* =========================================================
+   STAFF APPLICATION FLOW
+========================================================= */
 
-async function restoreSupportSessions() {
+const APPLICATION_QUESTIONS = [
+  "ما اسمك؟",
+  "كم عمرك؟",
+  "ما اسمك في FiveM؟",
+  "ما خبرتك السابقة في الإدارة؟",
+  "لماذا تريد الانضمام إلى الإدارة؟",
+  "كم ساعة تستطيع التواجد يوميًا؟",
+  "هل تستطيع الالتزام بقوانين الإدارة؟",
+  "احكِ لنا موقفًا إداريًا وكيف ستتعامل معه.",
+];
+
+async function startStaffApplication(interaction) {
+  const userId = interaction.user.id;
+
+  if (
+    db.applications[userId] &&
+    db.applications[userId].status === "pending"
+  ) {
+    return interaction.reply({
+      content: "⚠️ لديك طلب إدارة قيد المراجعة بالفعل.",
+      ephemeral: true,
+    });
+  }
+
+  let dm;
 
   try {
+    dm = await interaction.user.createDM();
+  } catch {
+    return interaction.reply({
+      content:
+        "❌ لا أستطيع إرسال رسالة خاصة لك. افتح الـDM من إعدادات الخصوصية ثم حاول مرة أخرى.",
+      ephemeral: true,
+    });
+  }
 
-    for (
-      const guild of
-      client.guilds.cache.values()
-    ) {
+  await interaction.reply({
+    content:
+      "✅ تم بدء التقديم. راجع الخاص DM وأجب عن الأسئلة واحدًا تلو الآخر.",
+    ephemeral: true,
+  });
 
-      const voiceChannel =
-        guild.channels.cache.get(
-          SUPPORT_VOICE_CHANNEL_ID
+  const answers = {};
+
+  try {
+    await dm.send(
+      "📋 **تم فتح تقديمك على الإدارة**\n\n" +
+        "جاوب على الأسئلة بالترتيب. كل سؤال له وقت محدد.\n" +
+        "عند الانتهاء سيتم إرسال طلبك للإدارة للمراجعة."
+    );
+
+    for (let i = 0; i < APPLICATION_QUESTIONS.length; i++) {
+      const question = APPLICATION_QUESTIONS[i];
+
+      await dm.send(
+        `**السؤال ${i + 1}/${APPLICATION_QUESTIONS.length}**\n${question}`
+      );
+
+      const collected = await dm
+        .awaitMessages({
+          filter: (message) =>
+            message.author.id === interaction.user.id &&
+            !message.author.bot,
+          max: 1,
+          time: 10 * 60 * 1000,
+        })
+        .catch(() => null);
+
+      if (!collected || collected.size === 0) {
+        await dm.send(
+          "❌ انتهى وقت التقديم بسبب عدم وجود رد.\nيمكنك البدء من جديد من Channel التقديم."
         );
-
-
-      if (
-        !voiceChannel ||
-        voiceChannel.type !==
-          ChannelType.GuildVoice
-      ) {
-
-        continue;
+        return;
       }
 
-
-      for (
-        const member of
-        voiceChannel.members.values()
-      ) {
-
-        if (
-          !supportData.activeSessions[
-            member.id
-          ]
-        ) {
-
-          supportData.activeSessions[
-            member.id
-          ] = {
-
-            guildId:
-              guild.id,
-
-            channelId:
-              SUPPORT_VOICE_CHANNEL_ID,
-
-            startedAt:
-              Date.now()
-          };
-
-
-          const today =
-            getTodayStats(
-              member.id
-            );
-
-
-          getSupportUser(
-            member.id
-          ).sessions++;
-
-
-          today.sessions++;
-        }
-      }
+      answers[`question_${i + 1}`] = collected.first().content;
     }
 
-
-    saveJSON(
-      SUPPORT_DATA_FILE,
-      supportData
+    const reviewChannel = await getChannel(
+      CONFIG.STAFF_APPLICATION_REVIEW_CHANNEL_ID
     );
 
+    if (!reviewChannel || !reviewChannel.isTextBased()) {
+      await dm.send(
+        "❌ حدث خطأ في نظام المراجعة. تواصل مع الإدارة."
+      );
+      return;
+    }
 
-    console.log(
-      "✅ Support sessions restored."
+    const applicationEmbed = new EmbedBuilder()
+      .setTitle("📋 طلب تقديم إدارة جديد")
+      .setDescription(`المتقدم: <@${userId}>`)
+      .addFields(
+        {
+          name: "1️⃣ الاسم",
+          value: answers.question_1 || "—",
+        },
+        {
+          name: "2️⃣ العمر",
+          value: answers.question_2 || "—",
+        },
+        {
+          name: "3️⃣ اسم FiveM",
+          value: answers.question_3 || "—",
+        },
+        {
+          name: "4️⃣ الخبرة",
+          value: answers.question_4 || "—",
+        },
+        {
+          name: "5️⃣ سبب التقديم",
+          value: answers.question_5 || "—",
+        },
+        {
+          name: "6️⃣ التواجد اليومي",
+          value: answers.question_6 || "—",
+        },
+        {
+          name: "7️⃣ الالتزام",
+          value: answers.question_7 || "—",
+        },
+        {
+          name: "8️⃣ الموقف الإداري",
+          value: answers.question_8 || "—",
+        }
+      )
+      .setColor(0xf1c40f)
+      .setTimestamp()
+      .setFooter({
+        text: `USER_ID: ${userId}`,
+      });
+
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`staff_accept_${userId}`)
+        .setLabel("قبول")
+        .setEmoji("✅")
+        .setStyle(ButtonStyle.Success),
+
+      new ButtonBuilder()
+        .setCustomId(`staff_reject_${userId}`)
+        .setLabel("رفض")
+        .setEmoji("❌")
+        .setStyle(ButtonStyle.Danger),
+
+      new ButtonBuilder()
+        .setCustomId(`staff_pending_${userId}`)
+        .setLabel("قيد المراجعة")
+        .setEmoji("⏳")
+        .setStyle(ButtonStyle.Secondary)
     );
 
+    const reviewMessage = await reviewChannel.send({
+      embeds: [applicationEmbed],
+      components: [row],
+    });
+
+    db.applications[userId] = {
+      status: "pending",
+      submittedAt: Date.now(),
+      applicationMessageId: reviewMessage.id,
+      answers,
+      reviewerId: null,
+      rejectionReason: null,
+    };
+
+    db.stats.totalApplications += 1;
+
+    saveDB();
+
+    await dm.send(
+      "✅ تم إرسال طلبك للإدارة.\n\n" +
+        "⏳ **طلبك قيد المراجعة الآن.**\n" +
+        "سيصلك إشعار في الخاص عند صدور القرار."
+    );
   } catch (error) {
+    console.error("STAFF APPLICATION ERROR:", error);
 
-    console.error(
-      "❌ Restore Support Error:",
-      error
-    );
+    await dm
+      .send(
+        "❌ حدث خطأ أثناء التقديم. حاول مرة أخرى من Channel التقديم."
+      )
+      .catch(() => {});
   }
 }
 
-// ==================================================
-// VOICE STATE
-// ==================================================
+/* =========================================================
+   STAFF APPLICATION DECISIONS
+========================================================= */
 
-client.on(
-  "voiceStateUpdate",
-  async (
-    oldState,
-    newState
-  ) => {
-
-    try {
-
-      const member =
-        newState.member ||
-        oldState.member;
-
-
-      if (!member)
-        return;
-
-
-      const wasInSupport =
-        oldState.channelId ===
-        SUPPORT_VOICE_CHANNEL_ID;
-
-
-      const isInSupport =
-        newState.channelId ===
-        SUPPORT_VOICE_CHANNEL_ID;
-
-
-      if (
-        !wasInSupport &&
-        isInSupport
-      ) {
-
-        await startSupportSession(
-          member
-        );
-
-        return;
-      }
-
-
-      if (
-        wasInSupport &&
-        !isInSupport
-      ) {
-
-        await endSupportSession(
-          member
-        );
-
-        return;
-      }
-
-    } catch (error) {
-
-      console.error(
-        "❌ Voice System Error:",
-        error
-      );
-    }
+async function handleStaffAccept(interaction, targetUserId) {
+  if (!memberIsAnyStaff(interaction.member)) {
+    return interaction.reply({
+      content: "❌ ليس لديك صلاحية استخدام هذا الزر.",
+      ephemeral: true,
+    });
   }
-);
 
-// ==================================================
-// SUPPORT COMMANDS
-// ==================================================
+  const application = db.applications[targetUserId];
 
-async function sendSupportStats(
-  message,
-  targetUser
-) {
+  if (!application) {
+    return interaction.reply({
+      content: "❌ لم يتم العثور على الطلب.",
+      ephemeral: true,
+    });
+  }
 
-  resetDailyStatsIfNeeded();
+  if (application.status === "accepted") {
+    return interaction.reply({
+      content: "⚠️ تم قبول الطلب بالفعل.",
+      ephemeral: true,
+    });
+  }
 
+  if (application.status === "rejected") {
+    return interaction.reply({
+      content: "⚠️ تم رفض الطلب بالفعل.",
+      ephemeral: true,
+    });
+  }
 
-  const user =
-    targetUser || message.author;
+  const guild = interaction.guild;
+  const member = await guild.members.fetch(targetUserId).catch(() => null);
 
+  if (!member) {
+    return interaction.reply({
+      content: "❌ العضو غير موجود في السيرفر.",
+      ephemeral: true,
+    });
+  }
 
-  const data =
-    getSupportUser(
-      user.id
+  const role = guild.roles.cache.get(CONFIG.STAFF_ACCEPTED_ROLE_ID);
+
+  if (!role) {
+    return interaction.reply({
+      content: "❌ رول القبول غير موجود.",
+      ephemeral: true,
+    });
+  }
+
+  try {
+    await member.roles.add(role);
+  } catch (error) {
+    return interaction.reply({
+      content:
+        "❌ لم أستطع إعطاء الرول. تأكد أن رول البوت أعلى من الرول المطلوب.",
+      ephemeral: true,
+    });
+  }
+
+  application.status = "accepted";
+  application.reviewerId = interaction.user.id;
+
+  saveDB();
+
+  await interaction.update({
+    embeds: [
+      EmbedBuilder.from(interaction.message.embeds[0])
+        .setColor(0x57f287)
+        .setDescription(
+          `المتقدم: <@${targetUserId}>\n\n**الحالة: ✅ تم القبول**\nبواسطة: ${interaction.user}`
+        )
+        .setTimestamp(),
+    ],
+    components: [buildDisabledStaffButtons(targetUserId)],
+  });
+
+  const acceptedChannel = await getChannel(
+    CONFIG.STAFF_APPLICATION_ACCEPTED_CHANNEL_ID
+  );
+
+  if (acceptedChannel?.isTextBased()) {
+    await acceptedChannel.send(
+      `✅ تم قبول طلب الإدارة للعضو <@${targetUserId}> بواسطة ${interaction.user}.`
     );
+  }
 
+  const user = await client.users.fetch(targetUserId).catch(() => null);
 
-  const today =
-    getTodayStats(
-      user.id
+  if (user) {
+    await user
+      .send(
+        `✅ **تم قبولك مبدئيًا في الإدارة** في سيرفر ${CONFIG.SERVER_NAME}.\n\n` +
+          `القرار بواسطة: ${interaction.user.tag}`
+      )
+      .catch(() => {});
+  }
+
+  await interaction.followUp({
+    content: "✅ تم قبول المتقدم وإعطاؤه الرول.",
+    ephemeral: true,
+  });
+}
+
+async function handleStaffPending(interaction, targetUserId) {
+  if (!memberIsAnyStaff(interaction.member)) {
+    return interaction.reply({
+      content: "❌ ليس لديك صلاحية استخدام هذا الزر.",
+      ephemeral: true,
+    });
+  }
+
+  const application = db.applications[targetUserId];
+
+  if (!application) {
+    return interaction.reply({
+      content: "❌ لم يتم العثور على الطلب.",
+      ephemeral: true,
+    });
+  }
+
+  application.status = "pending";
+  application.reviewerId = interaction.user.id;
+
+  saveDB();
+
+  await interaction.update({
+    embeds: [
+      EmbedBuilder.from(interaction.message.embeds[0])
+        .setColor(0xf1c40f)
+        .setDescription(
+          `المتقدم: <@${targetUserId}>\n\n` +
+            `**الحالة: ⏳ قيد المراجعة**\n` +
+            `بواسطة: ${interaction.user}`
+        )
+        .setTimestamp(),
+    ],
+    components: [
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`staff_accept_${targetUserId}`)
+          .setLabel("قبول")
+          .setEmoji("✅")
+          .setStyle(ButtonStyle.Success),
+
+        new ButtonBuilder()
+          .setCustomId(`staff_reject_${targetUserId}`)
+          .setLabel("رفض")
+          .setEmoji("❌")
+          .setStyle(ButtonStyle.Danger),
+
+        new ButtonBuilder()
+          .setCustomId(`staff_pending_${targetUserId}`)
+          .setLabel("قيد المراجعة")
+          .setEmoji("⏳")
+          .setStyle(ButtonStyle.Secondary)
+          .setDisabled(true)
+      ),
+    ],
+  });
+
+  const user = await client.users.fetch(targetUserId).catch(() => null);
+
+  if (user) {
+    await user
+      .send(
+        "⏳ **طلبك قيد المراجعة.**\n\n" +
+          "تقوم الإدارة حاليًا بمراجعة طلبك، وسيصلك القرار في الخاص."
+      )
+      .catch(() => {});
+  }
+
+  await interaction.followUp({
+    content: "⏳ تم تحويل الطلب إلى قيد المراجعة.",
+    ephemeral: true,
+  });
+}
+
+async function openRejectModal(interaction, targetUserId) {
+  if (!memberIsAnyStaff(interaction.member)) {
+    return interaction.reply({
+      content: "❌ ليس لديك صلاحية استخدام هذا الزر.",
+      ephemeral: true,
+    });
+  }
+
+  const modal = new ModalBuilder()
+    .setCustomId(`staff_reject_modal_${targetUserId}`)
+    .setTitle("سبب رفض طلب الإدارة");
+
+  const reasonInput = new TextInputBuilder()
+    .setCustomId("reject_reason")
+    .setLabel("سبب الرفض")
+    .setPlaceholder("اكتب سبب الرفض هنا...")
+    .setStyle(TextInputStyle.Paragraph)
+    .setRequired(true)
+    .setMaxLength(1000);
+
+  modal.addComponents(
+    new ActionRowBuilder().addComponents(reasonInput)
+  );
+
+  await interaction.showModal(modal);
+}
+
+async function handleStaffRejectModal(interaction, targetUserId) {
+  if (!memberIsAnyStaff(interaction.member)) {
+    return interaction.reply({
+      content: "❌ ليس لديك صلاحية استخدام هذا الزر.",
+      ephemeral: true,
+    });
+  }
+
+  const application = db.applications[targetUserId];
+
+  if (!application) {
+    return interaction.reply({
+      content: "❌ لم يتم العثور على الطلب.",
+      ephemeral: true,
+    });
+  }
+
+  const reason =
+    interaction.fields.getTextInputValue("reject_reason") ||
+    "لم يتم تحديد سبب.";
+
+  application.status = "rejected";
+  application.reviewerId = interaction.user.id;
+  application.rejectionReason = reason;
+
+  saveDB();
+
+  await interaction.deferUpdate();
+
+  await interaction.message.edit({
+    embeds: [
+      EmbedBuilder.from(interaction.message.embeds[0])
+        .setColor(0xed4245)
+        .setDescription(
+          `المتقدم: <@${targetUserId}>\n\n` +
+            `**الحالة: ❌ مرفوض**\n` +
+            `بواسطة: ${interaction.user}\n\n` +
+            `**سبب الرفض:**\n${reason}`
+        )
+        .setTimestamp(),
+    ],
+    components: [buildDisabledStaffButtons(targetUserId)],
+  });
+
+  const rejectedChannel = await getChannel(
+    CONFIG.STAFF_APPLICATION_REJECTED_CHANNEL_ID
+  );
+
+  if (rejectedChannel?.isTextBased()) {
+    await rejectedChannel.send(
+      `❌ تم رفض طلب الإدارة للعضو <@${targetUserId}> بواسطة ${interaction.user}.\n` +
+        `**السبب:** ${reason}`
     );
+  }
 
+  const user = await client.users.fetch(targetUserId).catch(() => null);
+
+  if (user) {
+    await user
+      .send(
+        `❌ **تم رفض طلبك للتقديم على الإدارة.**\n\n` +
+          `**سبب الرفض:**\n${reason}`
+      )
+      .catch(() => {});
+  }
+
+  await interaction.followUp({
+    content: "❌ تم رفض الطلب وإرسال سبب الرفض للمتقدم.",
+    ephemeral: true,
+  });
+}
+
+/* =========================================================
+   ATTENDANCE PANEL
+========================================================= */
+
+function getActiveAttendanceCount() {
+  return Object.values(db.attendance).filter((entry) => entry.active).length;
+}
+
+function getActiveVoiceCount() {
+  return Object.values(db.attendance).filter(
+    (entry) => entry.active && entry.voiceJoinedAt
+  ).length;
+}
+
+async function setupAttendancePanel() {
+  const channel = await getChannel(CONFIG.ATTENDANCE_CHANNEL_ID);
+
+  if (!channel || !channel.isTextBased()) return;
+
+  const embed = new EmbedBuilder()
+    .setTitle("🕐 تسجيل حضور وانصراف الدعم الفني")
+    .setDescription(
+      "استخدم الأزرار بالأسفل لتسجيل بداية ونهاية وقت العمل.\n\n" +
+        `🟢 المتواجدون حاليًا: **${getActiveAttendanceCount()}**\n` +
+        `🎧 داخل الرومات الصوتية: **${getActiveVoiceCount()}**\n\n` +
+        "يتم احتساب:\n" +
+        "• وقت العمل\n" +
+        "• وقت التواجد الصوتي\n" +
+        "• عدد الشفتات\n" +
+        "• نقاط الدعم"
+    )
+    .setColor(0x57f287)
+    .setFooter({
+      text: "LEGEND_PANEL:attendance",
+    });
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId("att_checkin")
+      .setLabel("تسجيل دخول")
+      .setEmoji("🟢")
+      .setStyle(ButtonStyle.Success),
+
+    new ButtonBuilder()
+      .setCustomId("att_checkout")
+      .setLabel("تسجيل خروج")
+      .setEmoji("🔴")
+      .setStyle(ButtonStyle.Danger),
+
+    new ButtonBuilder()
+      .setCustomId("att_stats")
+      .setLabel("إحصائياتي")
+      .setEmoji("📊")
+      .setStyle(ButtonStyle.Primary),
+
+    new ButtonBuilder()
+      .setCustomId("att_leaderboard")
+      .setLabel("الترتيب")
+      .setEmoji("🏆")
+      .setStyle(ButtonStyle.Secondary)
+  );
+
+  await upsertPanel("attendance", channel, {
+    embeds: [embed],
+    components: [row],
+  });
+}
+
+async function checkIn(interaction) {
+  if (!memberIsSupportStaff(interaction.member)) {
+    return interaction.reply({
+      content: "❌ هذا النظام مخصص لفريق الدعم الفني فقط.",
+      ephemeral: true,
+    });
+  }
+
+  const attendance = getAttendance(interaction.user.id);
+
+  if (attendance.active) {
+    return interaction.reply({
+      content: `⚠️ أنت مسجل دخول بالفعل منذ ${formatDate(
+        attendance.startedAt
+      )}.`,
+      ephemeral: true,
+    });
+  }
+
+  const now = Date.now();
+
+  attendance.active = true;
+  attendance.startedAt = now;
+  attendance.currentStartAt = now;
+  attendance.lastCheckIn = now;
+  attendance.voiceJoinedAt = interaction.member.voice?.channelId
+    ? now
+    : null;
+
+  saveDB();
+
+  const logChannel = await getChannel(CONFIG.ATTENDANCE_LOG_CHANNEL_ID);
+
+  if (logChannel?.isTextBased()) {
+    await logChannel.send(
+      `🟢 **تسجيل دخول**\n` +
+        `العضو: ${interaction.user}\n` +
+        `الوقت: ${formatDate(now)}`
+    );
+  }
+
+  await interaction.reply({
+    content:
+      `✅ تم تسجيل دخولك بنجاح.\n` +
+      `🕐 بداية العمل: ${formatDate(now)}\n` +
+      `🎧 وقت الصوت يبدأ الاحتساب إذا كنت داخل روم صوتي.`,
+    ephemeral: true,
+  });
+
+  await setupAttendancePanel();
+}
+
+async function checkOut(interaction) {
+  if (!memberIsSupportStaff(interaction.member)) {
+    return interaction.reply({
+      content: "❌ هذا النظام مخصص لفريق الدعم الفني فقط.",
+      ephemeral: true,
+    });
+  }
+
+  const attendance = getAttendance(interaction.user.id);
+
+  if (!attendance.active) {
+    return interaction.reply({
+      content: "⚠️ أنت غير مسجل دخول حاليًا.",
+      ephemeral: true,
+    });
+  }
+
+  const now = Date.now();
+
+  const totalSeconds = Math.floor(
+    (now - attendance.startedAt) / 1000
+  );
+
+  if (attendance.voiceJoinedAt) {
+    attendance.voiceSeconds += Math.floor(
+      (now - attendance.voiceJoinedAt) / 1000
+    );
+  }
+
+  attendance.totalSeconds += totalSeconds;
+  attendance.shifts += 1;
+  attendance.points += 1;
+
+  attendance.active = false;
+  attendance.currentStartAt = null;
+  attendance.voiceJoinedAt = null;
+  attendance.lastCheckOut = now;
+
+  saveDB();
+
+  const logChannel = await getChannel(CONFIG.ATTENDANCE_LOG_CHANNEL_ID);
+
+  if (logChannel?.isTextBased()) {
+    await logChannel.send(
+      `🔴 **تسجيل خروج**\n` +
+        `العضو: ${interaction.user}\n` +
+        `وقت الدخول: ${formatDate(attendance.startedAt)}\n` +
+        `وقت الخروج: ${formatDate(now)}\n` +
+        `إجمالي العمل: **${formatDuration(totalSeconds)}**\n` +
+        `نقاط: **+1**`
+    );
+  }
+
+  const user = await client.users.fetch(interaction.user.id).catch(() => null);
+
+  if (user) {
+    await user
+      .send(
+        `🔴 **تم تسجيل خروجك من الدعم الفني**\n\n` +
+          `وقت الدخول: ${formatDate(attendance.startedAt)}\n` +
+          `وقت الخروج: ${formatDate(now)}\n` +
+          `مدة الشفت: **${formatDuration(totalSeconds)}**`
+      )
+      .catch(() => {});
+  }
+
+  await interaction.reply({
+    content:
+      `✅ تم تسجيل خروجك.\n` +
+      `مدة العمل: **${formatDuration(totalSeconds)}**\n` +
+      `نقاطك الحالية: **${attendance.points}**`,
+    ephemeral: true,
+  });
+
+  await setupAttendancePanel();
+}
+
+async function showAttendanceStats(interaction) {
+  if (!memberIsSupportStaff(interaction.member)) {
+    return interaction.reply({
+      content: "❌ هذا النظام مخصص لفريق الدعم الفني فقط.",
+      ephemeral: true,
+    });
+  }
+
+  const data = getAttendance(interaction.user.id);
 
   let currentSession = 0;
 
-
-  if (
-    supportData.activeSessions[
-      user.id
-    ]
-  ) {
-
-    currentSession =
-      Date.now() -
-      supportData.activeSessions[
-        user.id
-      ].startedAt;
+  if (data.active && data.startedAt) {
+    currentSession = Math.floor((Date.now() - data.startedAt) / 1000);
   }
 
+  let currentVoice = data.voiceSeconds;
 
-  const todayTime =
-    today.milliseconds +
-    currentSession;
+  if (data.active && data.voiceJoinedAt) {
+    currentVoice += Math.floor(
+      (Date.now() - data.voiceJoinedAt) / 1000
+    );
+  }
 
-
-  const totalTime =
-    data.totalMilliseconds +
-    currentSession;
-
-
-  const embed =
-    new EmbedBuilder()
-
-      .setColor(
-        "#1683ff"
-      )
-
-      .setTitle(
-        `🎧 إحصائيات الدعم - ${user.username}`
-      )
-
-      .setThumbnail(
-        user.displayAvatarURL({
-          dynamic: true,
-          size: 256
-        })
-      )
-
-      .addFields(
-
-        {
-          name:
-            "📅 إحصائيات اليوم",
-
-          value:
-            `🎫 التذاكر المستلمة: **${today.tickets}**\n` +
-
-            `👥 الأعضاء المتعامل معهم: **${Object.values(
-              supportData.handledTickets[
-                getTodayDate()
-              ] || {}
-            ).filter(
-              item =>
-                item.staffId ===
-                user.id
-            ).length}**\n` +
-
-            `🎧 مرات الدخول: **${today.sessions}**\n` +
-
-            `⏱️ وقت الدعم: **${formatDuration(
-              todayTime
-            )}**\n` +
-
-            `⭐ نقاط اليوم: **${today.points}**`
-        },
-
-        {
-          name:
-            "🏆 الإجمالي",
-
-          value:
-            `🎫 إجمالي التذاكر: **${data.sessions}**\n` +
-
-            `⏱️ إجمالي وقت الدعم: **${formatDuration(
-              totalTime
-            )}**\n` +
-
-            `⭐ إجمالي النقاط: **${data.points}**`
-        }
-      )
-
-      .setFooter({
-
-        text:
-          "Ghost RP • Support System"
-      })
-
-      .setTimestamp();
-
-
-  await message.reply({
-    embeds: [embed]
+  await interaction.reply({
+    content:
+      `📊 **إحصائياتك**\n\n` +
+      `👤 العضو: ${interaction.user}\n` +
+      `🟢 الحالة: ${
+        data.active ? "متواجد حاليًا" : "غير متواجد"
+      }\n` +
+      `🕐 مدة العمل الكلية: **${formatDuration(
+        data.totalSeconds + currentSession
+      )}**\n` +
+      `🎧 مدة الصوت الكلية: **${formatDuration(currentVoice)}**\n` +
+      `📅 عدد الشفتات: **${data.shifts}**\n` +
+      `🎫 التذاكر المستلمة: **${data.ticketsClaimed}**\n` +
+      `✅ التذاكر المغلقة: **${data.ticketsClosed}**\n` +
+      `🏆 النقاط: **${data.points}**`,
+    ephemeral: true,
   });
 }
 
-// ==================================================
-// SUPPORT TOP
-// ==================================================
-
-async function sendSupportTop(
-  message
-) {
-
-  resetDailyStatsIfNeeded();
-
-
-  const users =
-    Object.entries(
-      supportData.users
-    );
-
-
-  if (!users.length) {
-
-    return message.reply(
-      "❌ لا توجد إحصائيات دعم حتى الآن."
-    );
+async function showLeaderboard(interaction) {
+  if (!memberIsSupportStaff(interaction.member)) {
+    return interaction.reply({
+      content: "❌ هذا النظام مخصص لفريق الدعم الفني فقط.",
+      ephemeral: true,
+    });
   }
 
+  const entries = Object.entries(db.attendance)
+    .sort(([, a], [, b]) => b.points - a.points)
+    .slice(0, 10);
 
-  const ranking =
-    users
-
-      .map(
-        ([userId, data]) => {
-
-          return {
-
-            userId,
-
-            points:
-              data.points || 0,
-
-            todayPoints:
-              data.today?.points || 0,
-
-            handled:
-              data.today?.handled || 0,
-
-            time:
-              data.totalMilliseconds || 0
-          };
-        }
-      )
-
-      .sort(
-        (a, b) =>
-          b.points -
-          a.points
-      )
-
-      .slice(0, 10);
-
+  if (!entries.length) {
+    return interaction.reply({
+      content: "🏆 لا توجد بيانات حتى الآن.",
+      ephemeral: true,
+    });
+  }
 
   const lines = [];
 
+  for (let index = 0; index < entries.length; index++) {
+    const [userId, data] = entries[index];
 
-  for (
-    let i = 0;
-    i < ranking.length;
-    i++
-  ) {
-
-    const item =
-      ranking[i];
-
-
-    const member =
-      await message.guild.members
-        .fetch(item.userId)
-        .catch(
-          () => null
-        );
-
-
-    const name =
-      member
-        ? member.user.username
-        : `User ${item.userId}`;
-
+    const user = await client.users.fetch(userId).catch(() => null);
 
     lines.push(
-
-      `**${i + 1}.** ${name}\n` +
-
-      `> ⭐ ${item.points} نقطة | ` +
-
-      `🎫 ${item.handled} حالات اليوم | ` +
-
-      `⏱️ ${formatShortDuration(
-        item.time
+      `${index + 1}. ${user ? user.tag : userId} — **${data.points} نقطة** — ${formatDuration(
+        data.totalSeconds
       )}`
     );
   }
 
-
-  const embed =
-    new EmbedBuilder()
-
-      .setColor(
-        "#f1c40f"
-      )
-
-      .setTitle(
-        "🏆 أفضل مسؤولي الدعم"
-      )
-
-      .setDescription(
-        lines.join("\n\n")
-      )
-
-      .setFooter({
-
-        text:
-          "Ghost RP • Support Leaderboard"
-      })
-
-      .setTimestamp();
-
-
-  await message.reply({
-    embeds: [embed]
+  await interaction.reply({
+    content: `🏆 **ترتيب الدعم الفني**\n\n${lines.join("\n")}`,
+    ephemeral: true,
   });
 }
 
-// ==================================================
-// MESSAGE COMMANDS
-// ==================================================
+/* =========================================================
+   VOICE TRACKING
+========================================================= */
 
-client.on(
-  "messageCreate",
-  async message => {
+client.on("voiceStateUpdate", async (oldState, newState) => {
+  try {
+    const userId = newState.id;
+    const attendance = getAttendance(userId);
 
-    try {
+    if (!attendance.active) return;
 
-      if (
-        message.author.bot
-      )
-        return;
+    const member = newState.member;
 
+    if (!member || !memberIsSupportStaff(member)) return;
 
-      if (
-        !message.guild
-      )
-        return;
+    const wasInVoice = Boolean(oldState.channelId);
+    const isInVoice = Boolean(newState.channelId);
 
-
-      if (
-        !message.content.startsWith(
-          PREFIX
-        )
-      )
-        return;
-
-
-      const args =
-        message.content
-          .slice(
-            PREFIX.length
-          )
-          .trim()
-          .split(/\s+/);
-
-
-      const command =
-        args.shift()
-          ?.toLowerCase();
-
-
-      // !support
-
-      if (
-        command ===
-        "support"
-      ) {
-
-        const target =
-          message.mentions.users.first() ||
-          message.author;
-
-
-        await sendSupportStats(
-          message,
-          target
-        );
-
-        return;
-      }
-
-
-      // !support-top
-
-      if (
-        command ===
-        "support-top"
-      ) {
-
-        await sendSupportTop(
-          message
-        );
-
-        return;
-      }
-
-
-      // !support-help
-
-      if (
-        command ===
-        "support-help"
-      ) {
-
-        const embed =
-          new EmbedBuilder()
-
-            .setColor(
-              "#1683ff"
-            )
-
-            .setTitle(
-              "🎧 أوامر نظام الدعم"
-            )
-
-            .setDescription(
-
-              "**!support**\n" +
-
-              "عرض إحصائياتك اليومية والإجمالية.\n\n" +
-
-              "**!support @عضو**\n" +
-
-              "عرض إحصائيات مسؤول دعم معين.\n\n" +
-
-              "**!support-top**\n" +
-
-              "عرض أفضل مسؤولي الدعم حسب النقاط.\n\n" +
-
-              "**!support-help**\n" +
-
-              "عرض قائمة أوامر الدعم."
-            )
-
-            .setFooter({
-
-              text:
-                "Ghost RP • Support System"
-            });
-
-
-        await message.reply({
-          embeds: [embed]
-        });
-
-        return;
-      }
-
-    } catch (error) {
-
-      console.error(
-        "❌ Message Command Error:",
-        error
-      );
+    if (!wasInVoice && isInVoice) {
+      attendance.voiceJoinedAt = Date.now();
+      saveDB();
     }
-  }
-);
 
-// ==================================================
-// INTERACTIONS
-// ==================================================
-
-client.on(
-  "interactionCreate",
-  async interaction => {
-
-    try {
-
-      // ==================================================
-      // ADMIN APPLICATION BUTTON
-      // ==================================================
-
-      if (
-        interaction.isButton() &&
-        interaction.customId ===
-          "start_admin_application"
-      ) {
-
-        await startApplication(
-          interaction
-        );
-
-        return;
-      }
-
-
-      // ==================================================
-      // APPLICATION ACCEPT
-      // ==================================================
-
-      if (
-        interaction.isButton() &&
-
-        interaction.customId.startsWith(
-          "application_accept_"
-        ) &&
-
-        !interaction.customId.startsWith(
-          "application_accept_disabled_"
-        )
-      ) {
-
-        await handleApplicationDecision(
-          interaction,
-          true
-        );
-
-        return;
-      }
-
-
-      // ==================================================
-      // APPLICATION REJECT
-      // ==================================================
-
-      if (
-        interaction.isButton() &&
-
-        interaction.customId.startsWith(
-          "application_reject_"
-        ) &&
-
-        !interaction.customId.startsWith(
-          "application_reject_disabled_"
-        )
-      ) {
-
-        await handleApplicationDecision(
-          interaction,
-          false
-        );
-
-        return;
-      }
-
-
-      // ==================================================
-      // TICKET SELECT
-      // ==================================================
-
-      if (
-        interaction.isStringSelectMenu() &&
-        interaction.customId ===
-          "ticket_select"
-      ) {
-
-        const type =
-          interaction.values[0];
-
-
-        const ticket =
-          TICKET_TYPES[type];
-
-
-        if (!ticket)
-          return;
-
-
-        await interaction.deferReply({
-          ephemeral: true
-        });
-
-
-        const guild =
-          interaction.guild;
-
-
-        const member =
-          interaction.member;
-
-
-        // البحث عن تذكرة مفتوحة
-
-        const existingTicket =
-          guild.channels.cache.find(
-
-            channel =>
-
-              channel.type ===
-                ChannelType.GuildText &&
-
-              channel.topic ===
-                `ticket-owner:${member.id}`
-          );
-
-
-        if (existingTicket) {
-
-          return interaction.editReply({
-
-            content:
-              `❌ لديك تذكرة مفتوحة بالفعل:\n${existingTicket}`
-          });
-        }
-
-
-        const safeName =
-          ticket.name
-
-            .replace(
-              /[^\u0600-\u06FFa-zA-Z0-9 ]/g,
-              ""
-            )
-
-            .trim()
-
-            .replace(
-              /\s+/g,
-              "-"
-            )
-
-            .toLowerCase();
-
-
-        const channelName =
-          `ticket-${safeName}-${member.user.username}`
-            .toLowerCase()
-            .slice(
-              0,
-              90
-            );
-
-
-        const permissionOverwrites = [
-
-          {
-            id:
-              guild.roles.everyone.id,
-
-            deny: [
-              PermissionsBitField.Flags
-                .ViewChannel
-            ]
-          },
-
-          {
-            id:
-              member.id,
-
-            allow: [
-
-              PermissionsBitField.Flags
-                .ViewChannel,
-
-              PermissionsBitField.Flags
-                .SendMessages,
-
-              PermissionsBitField.Flags
-                .ReadMessageHistory,
-
-              PermissionsBitField.Flags
-                .AttachFiles
-            ]
-          },
-
-          {
-            id:
-              client.user.id,
-
-            allow: [
-
-              PermissionsBitField.Flags
-                .ViewChannel,
-
-              PermissionsBitField.Flags
-                .SendMessages,
-
-              PermissionsBitField.Flags
-                .ReadMessageHistory,
-
-              PermissionsBitField.Flags
-                .ManageChannels,
-
-              PermissionsBitField.Flags
-                .ManageMessages
-            ]
-          }
-        ];
-
-
-        for (
-          const roleId of ticket.roles
-        ) {
-
-          permissionOverwrites.push({
-
-            id:
-              roleId,
-
-            allow: [
-
-              PermissionsBitField.Flags
-                .ViewChannel,
-
-              PermissionsBitField.Flags
-                .SendMessages,
-
-              PermissionsBitField.Flags
-                .ReadMessageHistory,
-
-              PermissionsBitField.Flags
-                .AttachFiles
-            ]
-          });
-        }
-
-
-        const ticketChannel =
-          await guild.channels.create({
-
-            name:
-              channelName,
-
-            type:
-              ChannelType.GuildText,
-
-            topic:
-              `ticket-owner:${member.id}`,
-
-            permissionOverwrites
-          });
-
-
-        const panelChannel =
-          guild.channels.cache.get(
-            TICKET_PANEL_CHANNEL_ID
-          );
-
-
-        if (
-          panelChannel &&
-          panelChannel.parentId
-        ) {
-
-          await ticketChannel
-            .setParent(
-              panelChannel.parentId,
-              {
-                lockPermissions:
-                  false
-              }
-            )
-            .catch(
-              () => {}
-            );
-        }
-
-
-        const claimButton =
-          new ButtonBuilder()
-
-            .setCustomId(
-              "claim_ticket"
-            )
-
-            .setLabel(
-              "استلام التذكرة"
-            )
-
-            .setEmoji("🎫")
-
-            .setStyle(
-              ButtonStyle.Primary
-            );
-
-
-        const closeButton =
-          new ButtonBuilder()
-
-            .setCustomId(
-              "close_ticket"
-            )
-
-            .setLabel(
-              "إغلاق التذكرة"
-            )
-
-            .setEmoji("🔒")
-
-            .setStyle(
-              ButtonStyle.Danger
-            );
-
-
-        const row =
-          new ActionRowBuilder()
-            .addComponents(
-
-              claimButton,
-
-              closeButton
-            );
-
-
-        const ticketEmbed =
-          new EmbedBuilder()
-
-            .setColor(
-              "#1683ff"
-            )
-
-            .setTitle(
-              `${ticket.emoji} ${ticket.name}`
-            )
-
-            .setDescription(
-
-              `مرحباً ${member} 👋\n\n` +
-
-              `تم فتح تذكرتك بنجاح.\n\n` +
-
-              `سيقوم المسؤولون المختصون بمساعدتك في أقرب وقت.\n\n` +
-
-              `📌 **القسم:** ${ticket.name}\n` +
-
-              `👤 **صاحب التذكرة:** ${member}\n\n` +
-
-              `⚠️ يرجى شرح مشكلتك بالتفصيل وعدم عمل Mention للمسؤولين.`
-            )
-
-            .setFooter({
-
-              text:
-                "Ghost FiveM Roleplay"
-            })
-
-            .setTimestamp();
-
-
-        const roleMentions =
-          ticket.roles
-            .map(
-              roleId =>
-                `<@&${roleId}>`
-            )
-            .join(" ");
-
-
-        await ticketChannel.send({
-
-          content:
-            `${member}\n${roleMentions}`,
-
-          embeds: [
-            ticketEmbed
-          ],
-
-          components: [
-            row
-          ]
-        });
-
-
-        await interaction.editReply({
-
-          content:
-            `✅ تم فتح تذكرتك بنجاح!\n\n${ticketChannel}`
-        });
-
-
-        return;
-      }
-
-
-      // ==================================================
-      // CLAIM TICKET
-      // ==================================================
-
-      if (
-        interaction.isButton() &&
-        interaction.customId ===
-          "claim_ticket"
-      ) {
-
-        const channel =
-          interaction.channel;
-
-
-        if (
-          !channel ||
-          channel.type !==
-            ChannelType.GuildText
-        ) {
-
-          return;
-        }
-
-
-        const member =
-          interaction.member;
-
-
-        const ticketOwner =
-          channel.topic
-            ?.replace(
-              "ticket-owner:",
-              ""
-            );
-
-
-        if (!ticketOwner) {
-
-          return interaction.reply({
-
-            content:
-              "❌ لم يتم العثور على صاحب التذكرة.",
-
-            ephemeral: true
-          });
-        }
-
-
-        // تحديد نوع التذكرة من اسمها
-
-        const ticketType =
-          Object.entries(
-            TICKET_TYPES
-          ).find(
-            ([key, ticket]) => {
-
-              const safe =
-                ticket.name
-
-                  .replace(
-                    /[^\u0600-\u06FFa-zA-Z0-9 ]/g,
-                    ""
-                  )
-
-                  .trim()
-
-                  .replace(
-                    /\s+/g,
-                    "-"
-                  )
-
-                  .toLowerCase();
-
-
-              return channel.name.includes(
-                `ticket-${safe}`
-              );
-            }
-          );
-
-
-        if (!ticketType) {
-
-          return interaction.reply({
-
-            content:
-              "❌ لم أستطع تحديد قسم التذكرة.",
-
-            ephemeral: true
-          });
-        }
-
-
-        const ticket =
-          ticketType[1];
-
-
-        const isAdmin =
-          member.permissions.has(
-            PermissionsBitField.Flags.Administrator
-          );
-
-
-        const isTicketStaff =
-          ticket.roles.some(
-            roleId =>
-              member.roles.cache.has(
-                roleId
-              )
-          );
-
-
-        if (
-          !isAdmin &&
-          !isTicketStaff
-        ) {
-
-          return interaction.reply({
-
-            content:
-              "❌ هذا الزر مخصص لمسؤولي القسم فقط.",
-
-            ephemeral: true
-          });
-        }
-
-
-        const added =
-          addHandledMember(
-
-            member.id,
-
-            ticketOwner,
-
-            channel.id
-          );
-
-
-        if (!added) {
-
-          return interaction.reply({
-
-            content:
-              "⚠️ تم استلام هذه التذكرة مسبقًا.",
-
-            ephemeral: true
-          });
-        }
-
-
-        const today =
-          getTodayStats(
-            member.id
-          );
-
-
-        await interaction.reply({
-
-          content:
-            `🎫 **تم استلام التذكرة بنجاح**\n\n` +
-
-            `👤 المسؤول: ${member}\n` +
-
-            `👥 العميل: <@${ticketOwner}>\n` +
-
-            `📊 الحالات اليوم: **${today.handled}**\n` +
-
-            `⭐ نقاطك اليوم: **${today.points}**`,
-
-          ephemeral: false
-        });
-
-
-        // تحديث أزرار الرسالة
-
-        const messages =
-          await channel.messages.fetch({
-            limit: 20
-          });
-
-
-        const ticketMessage =
-          messages.find(
-            msg =>
-              msg.author.id ===
-                client.user.id &&
-
-              msg.components.some(
-                row =>
-                  row.components.some(
-                    component =>
-                      component.customId ===
-                      "claim_ticket"
-                  )
-              )
-          );
-
-
-        if (ticketMessage) {
-
-          const newRow =
-            new ActionRowBuilder()
-              .addComponents(
-
-                new ButtonBuilder()
-
-                  .setCustomId(
-                    "claim_ticket_done"
-                  )
-
-                  .setLabel(
-                    `تم الاستلام بواسطة ${member.user.username}`
-                  )
-
-                  .setEmoji("✅")
-
-                  .setStyle(
-                    ButtonStyle.Success
-                  )
-
-                  .setDisabled(true),
-
-
-                new ButtonBuilder()
-
-                  .setCustomId(
-                    "close_ticket"
-                  )
-
-                  .setLabel(
-                    "إغلاق التذكرة"
-                  )
-
-                  .setEmoji("🔒")
-
-                  .setStyle(
-                    ButtonStyle.Danger
-                  )
-              );
-
-
-          await ticketMessage.edit({
-
-            components: [
-              newRow
-            ]
-          });
-        }
-
-
-        return;
-      }
-
-
-      // ==================================================
-      // CLOSE TICKET
-      // ==================================================
-
-      if (
-        interaction.isButton() &&
-        interaction.customId ===
-          "close_ticket"
-      ) {
-
-        const channel =
-          interaction.channel;
-
-
-        if (
-          !channel ||
-          channel.type !==
-            ChannelType.GuildText
-        ) {
-
-          return;
-        }
-
-
-        await interaction.reply({
-
-          content:
-            "🔒 سيتم إغلاق التذكرة خلال 5 ثوانٍ...",
-
-          ephemeral: false
-        });
-
-
-        setTimeout(
-          async () => {
-
-            await channel
-              .delete()
-              .catch(
-                () => {}
-              );
-
-          },
-          5000
-        );
-
-
-        return;
-      }
-
-    } catch (error) {
-
-      console.error(
-        "❌ Interaction Error:",
-        error
+    if (wasInVoice && !isInVoice && attendance.voiceJoinedAt) {
+      attendance.voiceSeconds += Math.floor(
+        (Date.now() - attendance.voiceJoinedAt) / 1000
       );
 
+      attendance.voiceJoinedAt = null;
 
-      if (
-        interaction.replied ||
-        interaction.deferred
-      ) {
-
-        await interaction
-          .followUp({
-
-            content:
-              "❌ حدث خطأ أثناء تنفيذ العملية.",
-
-            ephemeral: true
-          })
-
-          .catch(
-            () => {}
-          );
-
-      } else {
-
-        await interaction
-          .reply({
-
-            content:
-              "❌ حدث خطأ أثناء تنفيذ العملية.",
-
-            ephemeral: true
-          })
-
-          .catch(
-            () => {}
-          );
-      }
+      saveDB();
     }
+  } catch (error) {
+    console.error("VOICE TRACKING ERROR:", error);
   }
-);
+});
 
-// ==================================================
-// ERROR HANDLING
-// ==================================================
+/* =========================================================
+   TICKET SYSTEM
+========================================================= */
 
-process.on(
-  "unhandledRejection",
-  error => {
+const TICKET_TYPES = {
+  technical: "🛠️ الدعم الفني",
+  player_report: "🚨 بلاغ عن لاعب",
+  bug: "🐛 مشكلة برمجية",
+  compensation: "💰 تعويضات",
+  admin_complaint: "👮 شكوى ضد إداري",
+  store: "🛒 المتجر",
+  permit: "📋 طلب تصريح",
+  voice: "🎙️ تغيير الصوت",
+  appeal: "⚖️ استئناف",
+  founders: "👑 تواصل مع المؤسسين",
+  lspd: "👮 انضمام إلى شرطة لوس سانتوس",
+  lsmc: "🏥 انضمام إلى مستشفى لوس سانتوس",
+  high_management: "🏛️ الإدارة العليا",
+  general: "🆘 الدعم العام / أي مشكلة",
+};
 
-    console.error(
-      "❌ Unhandled Rejection:",
-      error
-    );
-  }
-);
+function getTicketPanelOptions() {
+  return Object.entries(TICKET_TYPES).map(([value, label]) => ({
+    label: label.replace(/^.\s*/, ""),
+    value,
+  }));
+}
 
+async function ensureTicketPanelChannel() {
+  const guild = await getGuild();
 
-process.on(
-  "uncaughtException",
-  error => {
+  if (!guild) return null;
 
-    console.error(
-      "❌ Uncaught Exception:",
-      error
-    );
-  }
-);
-
-// ==================================================
-// TOKEN CHECK
-// ==================================================
-
-if (!TOKEN) {
-
-  console.error(
-    "❌ DISCORD_TOKEN غير موجود في Railway Variables!"
+  const category = guild.channels.cache.get(
+    CONFIG.TICKET_CATEGORY_ID
   );
 
+  if (!category || category.type !== ChannelType.GuildCategory) {
+    console.error("TICKET CATEGORY NOT FOUND.");
+    return null;
+  }
+
+  let panelChannel = category.children.cache.find(
+    (channel) => channel.name === "ticket-panel"
+  );
+
+  if (!panelChannel) {
+    panelChannel = await guild.channels
+      .create({
+        name: "ticket-panel",
+        type: ChannelType.GuildText,
+        parent: category.id,
+        permissionOverwrites: [
+          {
+            id: guild.roles.everyone.id,
+            allow: [
+              PermissionFlagsBits.ViewChannel,
+              PermissionFlagsBits.ReadMessageHistory,
+            ],
+            deny: [PermissionFlagsBits.SendMessages],
+          },
+          ...ALL_STAFF_ROLE_IDS.map((roleId) => ({
+            id: roleId,
+            allow: [
+              PermissionFlagsBits.ViewChannel,
+              PermissionFlagsBits.ReadMessageHistory,
+              PermissionFlagsBits.SendMessages,
+            ],
+          })),
+        ],
+      })
+      .catch((error) => {
+        console.error("CREATE TICKET PANEL ERROR:", error.message);
+        return null;
+      });
+  }
+
+  return panelChannel;
+}
+
+async function setupTicketPanel() {
+  const channel = await ensureTicketPanelChannel();
+
+  if (!channel || !channel.isTextBased()) return;
+
+  const embed = new EmbedBuilder()
+    .setTitle("🎫 نظام الدعم والتذاكر")
+    .setDescription(
+      "اختر نوع التذكرة من القائمة بالأسفل.\n\n" +
+        "سيتم فتح Ticket خاصة بك ولا يستطيع رؤيتها إلا أنت وفريق الإدارة."
+    )
+    .setColor(0x5865f2)
+    .setFooter({
+      text: "LEGEND_PANEL:tickets",
+    });
+
+  const menu = new StringSelectMenuBuilder()
+    .setCustomId("ticket_type")
+    .setPlaceholder("اختر نوع التذكرة")
+    .addOptions(getTicketPanelOptions());
+
+  const row = new ActionRowBuilder().addComponents(menu);
+
+  await upsertPanel("tickets", channel, {
+    embeds: [embed],
+    components: [row],
+  });
+}
+
+function ticketChannelName(user, type) {
+  const safeName =
+    user.username
+      .toLowerCase()
+      .replace(/[^a-z0-9\u0600-\u06FF_-]/g, "")
+      .slice(0, 25) || "user";
+
+  return `ticket-${safeName}-${type}`;
+}
+
+async function findExistingTicket(guild, userId) {
+  for (const channel of guild.channels.cache.values()) {
+    if (
+      channel.type !== ChannelType.GuildText ||
+      channel.parentId !== CONFIG.TICKET_CATEGORY_ID
+    ) {
+      continue;
+    }
+
+    if (!channel.topic) continue;
+
+    try {
+      const data = JSON.parse(channel.topic);
+
+      if (data.ownerId === userId) {
+        return channel;
+      }
+    } catch {
+      // ignore invalid topic
+    }
+  }
+
+  return null;
+}
+
+async function createTicket(interaction, type) {
+  const guild = interaction.guild;
+
+  if (!guild) {
+    return interaction.reply({
+      content: "❌ لا يمكن فتح التذكرة هنا.",
+      ephemeral: true,
+    });
+  }
+
+  const existing = await findExistingTicket(guild, interaction.user.id);
+
+  if (existing) {
+    return interaction.reply({
+      content: `⚠️ لديك تذكرة مفتوحة بالفعل: ${existing}`,
+      ephemeral: true,
+    });
+  }
+
+  const category = guild.channels.cache.get(
+    CONFIG.TICKET_CATEGORY_ID
+  );
+
+  if (!category) {
+    return interaction.reply({
+      content: "❌ لم يتم العثور على Category التذاكر.",
+      ephemeral: true,
+    });
+  }
+
+  const channel = await guild.channels
+    .create({
+      name: ticketChannelName(interaction.user, type),
+      type: ChannelType.GuildText,
+      parent: category.id,
+
+      topic: JSON.stringify({
+        ownerId: interaction.user.id,
+        type,
+        claimedBy: null,
+        createdAt: Date.now(),
+      }),
+
+      permissionOverwrites: [
+        {
+          id: guild.roles.everyone.id,
+          deny: [PermissionFlagsBits.ViewChannel],
+        },
+
+        {
+          id: interaction.user.id,
+          allow: [
+            PermissionFlagsBits.ViewChannel,
+            PermissionFlagsBits.SendMessages,
+            PermissionFlagsBits.ReadMessageHistory,
+            PermissionFlagsBits.AttachFiles,
+          ],
+        },
+
+        ...CONFIG.TICKET_STAFF_ROLE_IDS.map((roleId) => ({
+          id: roleId,
+          allow: [
+            PermissionFlagsBits.ViewChannel,
+            PermissionFlagsBits.SendMessages,
+            PermissionFlagsBits.ReadMessageHistory,
+            PermissionFlagsBits.ManageMessages,
+            PermissionFlagsBits.AttachFiles,
+          ],
+        })),
+
+        {
+          id: CONFIG.SUPPORT_STAFF_ROLE_ID,
+          allow: [
+            PermissionFlagsBits.ViewChannel,
+            PermissionFlagsBits.SendMessages,
+            PermissionFlagsBits.ReadMessageHistory,
+            PermissionFlagsBits.ManageMessages,
+            PermissionFlagsBits.AttachFiles,
+          ],
+        },
+      ],
+    })
+    .catch((error) => {
+      console.error("CREATE TICKET ERROR:", error);
+      return null;
+    });
+
+  if (!channel) {
+    return interaction.reply({
+      content:
+        "❌ لم أستطع إنشاء التذكرة. تأكد من صلاحية **Manage Channels**.",
+      ephemeral: true,
+    });
+  }
+
+  db.tickets[channel.id] = {
+    ownerId: interaction.user.id,
+    type,
+    claimedBy: null,
+    createdAt: Date.now(),
+  };
+
+  db.stats.totalTickets += 1;
+
+  saveDB();
+
+  const embed = new EmbedBuilder()
+    .setTitle("🎫 تم فتح التذكرة")
+    .setDescription(
+      `${interaction.user}\n\n` +
+        `**نوع التذكرة:** ${TICKET_TYPES[type] || TICKET_TYPES.general}\n\n` +
+        "يرجى كتابة مشكلتك بالتفصيل وانتظار أحد الإداريين.\n\n" +
+        "📥 **استلام** = للإداريين فقط\n" +
+        "🔒 **إغلاق** = إغلاق التذكرة"
+    )
+    .setColor(0x57f287)
+    .setTimestamp();
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId("ticket_claim")
+      .setLabel("استلام التذكرة")
+      .setEmoji("📥")
+      .setStyle(ButtonStyle.Primary),
+
+    new ButtonBuilder()
+      .setCustomId("ticket_close")
+      .setLabel("إغلاق التذكرة")
+      .setEmoji("🔒")
+      .setStyle(ButtonStyle.Danger)
+  );
+
+  await channel.send({
+    content: `<@${interaction.user.id}>`,
+    embeds: [embed],
+    components: [row],
+  });
+
+  const logChannel = await getChannel(CONFIG.TICKET_LOG_CHANNEL_ID);
+
+  if (logChannel?.isTextBased()) {
+    await logChannel.send(
+      `🎫 **تم فتح تذكرة**\n` +
+        `العضو: <@${interaction.user.id}>\n` +
+        `النوع: ${TICKET_TYPES[type] || type}\n` +
+        `التذكرة: ${channel}`
+    );
+  }
+
+  await interaction.reply({
+    content: `✅ تم فتح تذكرتك: ${channel}`,
+    ephemeral: true,
+  });
+}
+
+function readTicketData(channel) {
+  if (!channel?.topic) return null;
+
+  try {
+    return JSON.parse(channel.topic);
+  } catch {
+    return null;
+  }
+}
+
+async function claimTicket(interaction) {
+  const channel = interaction.channel;
+
+  if (!channel || channel.type !== ChannelType.GuildText) {
+    return interaction.reply({
+      content: "❌ هذه ليست تذكرة.",
+      ephemeral: true,
+    });
+  }
+
+  if (!memberIsTicketStaff(interaction.member)) {
+    return interaction.reply({
+      content: "❌ استلام التذكرة للإداريين فقط.",
+      ephemeral: true,
+    });
+  }
+
+  const data = readTicketData(channel);
+
+  if (!data) {
+    return interaction.reply({
+      content: "❌ بيانات التذكرة غير موجودة.",
+      ephemeral: true,
+    });
+  }
+
+  if (data.claimedBy) {
+    return interaction.reply({
+      content: `⚠️ التذكرة مستلمة بالفعل بواسطة <@${data.claimedBy}>.`,
+      ephemeral: true,
+    });
+  }
+
+  data.claimedBy = interaction.user.id;
+
+  channel
+    .setTopic(JSON.stringify(data))
+    .catch(() => {});
+
+  if (db.tickets[channel.id]) {
+    db.tickets[channel.id].claimedBy = interaction.user.id;
+  }
+
+  const attendance = getAttendance(interaction.user.id);
+
+  attendance.ticketsClaimed += 1;
+  attendance.points += 1;
+
+  saveDB();
+
+  await interaction.reply(
+    `📥 **تم استلام التذكرة بواسطة ${interaction.user}.**`
+  );
+}
+
+async function closeTicket(interaction) {
+  const channel = interaction.channel;
+
+  if (!channel || channel.type !== ChannelType.GuildText) {
+    return interaction.reply({
+      content: "❌ هذه ليست تذكرة.",
+      ephemeral: true,
+    });
+  }
+
+  const data = readTicketData(channel);
+
+  if (!data) {
+    return interaction.reply({
+      content: "❌ بيانات التذكرة غير موجودة.",
+      ephemeral: true,
+    });
+  }
+
+  const isOwner = interaction.user.id === data.ownerId;
+  const isStaff = memberIsTicketStaff(interaction.member);
+
+  if (!isOwner && !isStaff) {
+    return interaction.reply({
+      content: "❌ ليس لديك صلاحية إغلاق هذه التذكرة.",
+      ephemeral: true,
+    });
+  }
+
+  await interaction.reply(
+    `🔒 **تم إغلاق التذكرة بواسطة ${interaction.user}.**`
+  );
+
+  const messages = await channel.messages
+    .fetch({ limit: 100 })
+    .catch(() => null);
+
+  let transcriptText =
+    `LEGEND CFW - TICKET TRANSCRIPT\n` +
+    `Channel: ${channel.name}\n` +
+    `Owner ID: ${data.ownerId}\n` +
+    `Type: ${data.type}\n` +
+    `Claimed By: ${data.claimedBy || "None"}\n` +
+    `Closed By: ${interaction.user.id}\n` +
+    `Closed At: ${new Date().toISOString()}\n` +
+    `\n========================\n\n`;
+
+  if (messages) {
+    const sorted = [...messages.values()].sort(
+      (a, b) => a.createdTimestamp - b.createdTimestamp
+    );
+
+    for (const message of sorted) {
+      transcriptText +=
+        `[${new Date(message.createdTimestamp).toLocaleString("ar-EG")}] ` +
+        `${message.author.tag}: ${message.content || "[Attachment / Embed]"}\n`;
+    }
+  }
+
+  const logChannel = await getChannel(CONFIG.TICKET_LOG_CHANNEL_ID);
+
+  if (logChannel?.isTextBased()) {
+    const transcript = new AttachmentBuilder(
+      Buffer.from(transcriptText, "utf8"),
+      {
+        name: `transcript-${channel.name}.txt`,
+      }
+    );
+
+    await logChannel.send({
+      content:
+        `🔒 **تم إغلاق تذكرة**\n` +
+        `العضو: <@${data.ownerId}>\n` +
+        `النوع: ${TICKET_TYPES[data.type] || data.type}\n` +
+        `المستلم: ${
+          data.claimedBy ? `<@${data.claimedBy}>` : "لم يتم الاستلام"
+        }\n` +
+        `تم الإغلاق بواسطة: ${interaction.user}`,
+      files: [transcript],
+    });
+  }
+
+  if (data.claimedBy) {
+    const attendance = getAttendance(data.claimedBy);
+
+    attendance.ticketsClosed += 1;
+    attendance.points += 1;
+
+    saveDB();
+  }
+
+  const owner = await client.users
+    .fetch(data.ownerId)
+    .catch(() => null);
+
+  if (owner) {
+    await owner
+      .send(
+        `🔒 **تم إغلاق التذكرة الخاصة بك.**\n\n` +
+          `نوع التذكرة: ${TICKET_TYPES[data.type] || data.type}\n` +
+          `تم الإغلاق بواسطة: ${interaction.user.tag}`
+      )
+      .catch(() => {});
+  }
+
+  delete db.tickets[channel.id];
+  saveDB();
+
+  setTimeout(() => {
+    channel.delete("Ticket closed").catch(() => {});
+  }, 5000);
+}
+
+/* =========================================================
+   PERMIT SYSTEM
+========================================================= */
+
+async function setupPermitChannel(channelId, mode) {
+  const channel = await getChannel(channelId);
+
+  if (!channel || !channel.isTextBased()) return;
+
+  let title = "";
+  let description = "";
+
+  if (mode === "accept") {
+    title = "✅ قبول تصريح الدخول";
+    description =
+      "هذا الشانل مخصص للإدارة.\n\n" +
+      "اكتب **Discord ID فقط** للعضو.\n" +
+      "مثال:\n" +
+      "`123456789012345678`\n\n" +
+      "سيتم إعطاء رول تصريح الدخول تلقائيًا.";
+  }
+
+  if (mode === "reject") {
+    title = "❌ رفض تصريح الدخول";
+    description =
+      "هذا الشانل مخصص للإدارة.\n\n" +
+      "اكتب:\n" +
+      "`USER_ID | سبب الرفض`\n\n" +
+      "مثال:\n" +
+      "`123456789012345678 | العمر غير مناسب`";
+  }
+
+  if (mode === "pending") {
+    title = "⏳ تصريح الدخول - قيد المراجعة";
+    description =
+      "اكتب **Discord ID فقط** للعضو.\n\n" +
+      "سيصل للعضو:\n" +
+      "طلبك قيد المراجعة من الإدارة.";
+  }
+
+  const embed = new EmbedBuilder()
+    .setTitle(title)
+    .setDescription(description)
+    .setColor(
+      mode === "accept"
+        ? 0x57f287
+        : mode === "reject"
+        ? 0xed4245
+        : 0xf1c40f
+    )
+    .setFooter({
+      text: `LEGEND_PANEL:permit_${mode}`,
+    });
+
+  await upsertPanel(`permit_${mode}`, channel, {
+    embeds: [embed],
+  });
+}
+
+async function handlePermitMessage(message) {
+  if (message.author.bot) return;
+  if (!message.guild) return;
+
+  const channelId = message.channel.id;
+
+  let mode = null;
+
+  if (channelId === CONFIG.PERMIT_ACCEPT_CHANNEL_ID) {
+    mode = "accept";
+  } else if (channelId === CONFIG.PERMIT_REJECT_CHANNEL_ID) {
+    mode = "reject";
+  } else if (channelId === CONFIG.PERMIT_PENDING_CHANNEL_ID) {
+    mode = "pending";
+  }
+
+  if (!mode) return;
+
+  if (!memberIsAnyStaff(message.member)) {
+    return message.reply("❌ هذا الشانل مخصص للإدارة فقط.");
+  }
+
+  const content = message.content.trim();
+
+  if (mode === "accept") {
+    if (!/^\d{15,25}$/.test(content)) {
+      return message.reply(
+        "❌ اكتب Discord ID فقط، مثال: `123456789012345678`"
+      );
+    }
+
+    const member = await message.guild.members
+      .fetch(content)
+      .catch(() => null);
+
+    if (!member) {
+      return message.reply(
+        "❌ العضو غير موجود داخل السيرفر."
+      );
+    }
+
+    const role = message.guild.roles.cache.get(
+      CONFIG.PERMIT_ROLE_ID
+    );
+
+    if (!role) {
+      return message.reply(
+        "❌ رول تصريح الدخول غير موجود."
+      );
+    }
+
+    try {
+      await member.roles.add(role);
+    } catch {
+      return message.reply(
+        "❌ لم أستطع إعطاء الرول. تأكد أن رول البوت أعلى من رول التصريح."
+      );
+    }
+
+    await message.reply(
+      `✅ تم قبول <@${content}> وإعطاؤه رول تصريح الدخول.`
+    );
+
+    await member
+      .send(
+        `✅ **تم قبول تصريح دخولك إلى ${CONFIG.SERVER_NAME}.**\n\n` +
+          `تمت الموافقة بواسطة: ${message.author.tag}`
+      )
+      .catch(() => {});
+
+    return;
+  }
+
+  if (mode === "pending") {
+    if (!/^\d{15,25}$/.test(content)) {
+      return message.reply(
+        "❌ اكتب Discord ID فقط."
+      );
+    }
+
+    const user = await client.users.fetch(content).catch(() => null);
+
+    if (!user) {
+      return message.reply("❌ لم أجد هذا العضو.");
+    }
+
+    await user
+      .send(
+        `⏳ **طلبك قيد المراجعة.**\n\n` +
+          `جاري مراجعة طلب تصريح دخولك إلى ${CONFIG.SERVER_NAME}.`
+      )
+      .catch(() => {});
+
+    return message.reply(
+      `⏳ تم إرسال حالة **قيد المراجعة** إلى <@${content}>.`
+    );
+  }
+
+  if (mode === "reject") {
+    const parts = content.split("|");
+
+    const userId = parts[0]?.trim();
+    const reason =
+      parts.slice(1).join("|").trim() ||
+      "لم يتم تحديد سبب الرفض.";
+
+    if (!/^\d{15,25}$/.test(userId)) {
+      return message.reply(
+        "❌ الصيغة الصحيحة:\n`USER_ID | سبب الرفض`"
+      );
+    }
+
+    const user = await client.users.fetch(userId).catch(() => null);
+
+    if (!user) {
+      return message.reply("❌ لم أجد هذا العضو.");
+    }
+
+    await user
+      .send(
+        `❌ **تم رفض طلب تصريح دخولك إلى ${CONFIG.SERVER_NAME}.**\n\n` +
+          `**سبب الرفض:**\n${reason}`
+      )
+      .catch(() => {});
+
+    return message.reply(
+      `❌ تم رفض طلب <@${userId}> وإرسال السبب له في الخاص.`
+    );
+  }
+}
+
+/* =========================================================
+   PERMIT PANELS
+========================================================= */
+
+async function setupPermitPanels() {
+  await setupPermitChannel(
+    CONFIG.PERMIT_ACCEPT_CHANNEL_ID,
+    "accept"
+  );
+
+  await setupPermitChannel(
+    CONFIG.PERMIT_REJECT_CHANNEL_ID,
+    "reject"
+  );
+
+  await setupPermitChannel(
+    CONFIG.PERMIT_PENDING_CHANNEL_ID,
+    "pending"
+  );
+}
+
+/* =========================================================
+   INTERACTIONS
+========================================================= */
+
+client.on("interactionCreate", async (interaction) => {
+  try {
+    /* ---------------- STAFF APPLY ---------------- */
+
+    if (
+      interaction.isButton() &&
+      interaction.customId === "staff_apply"
+    ) {
+      return startStaffApplication(interaction);
+    }
+
+    /* ---------------- STAFF DECISIONS ---------------- */
+
+    if (
+      interaction.isButton() &&
+      interaction.customId.startsWith("staff_accept_")
+    ) {
+      const userId = interaction.customId.replace(
+        "staff_accept_",
+        ""
+      );
+
+      return handleStaffAccept(interaction, userId);
+    }
+
+    if (
+      interaction.isButton() &&
+      interaction.customId.startsWith("staff_reject_")
+    ) {
+      const userId = interaction.customId.replace(
+        "staff_reject_",
+        ""
+      );
+
+      return openRejectModal(interaction, userId);
+    }
+
+    if (
+      interaction.isButton() &&
+      interaction.customId.startsWith("staff_pending_")
+    ) {
+      const userId = interaction.customId.replace(
+        "staff_pending_",
+        ""
+      );
+
+      return handleStaffPending(interaction, userId);
+    }
+
+    /* ---------------- STAFF REJECT MODAL ---------------- */
+
+    if (
+      interaction.isModalSubmit() &&
+      interaction.customId.startsWith("staff_reject_modal_")
+    ) {
+      const userId = interaction.customId.replace(
+        "staff_reject_modal_",
+        ""
+      );
+
+      return handleStaffRejectModal(interaction, userId);
+    }
+
+    /* ---------------- ATTENDANCE ---------------- */
+
+    if (
+      interaction.isButton() &&
+      interaction.customId === "att_checkin"
+    ) {
+      return checkIn(interaction);
+    }
+
+    if (
+      interaction.isButton() &&
+      interaction.customId === "att_checkout"
+    ) {
+      return checkOut(interaction);
+    }
+
+    if (
+      interaction.isButton() &&
+      interaction.customId === "att_stats"
+    ) {
+      return showAttendanceStats(interaction);
+    }
+
+    if (
+      interaction.isButton() &&
+      interaction.customId === "att_leaderboard"
+    ) {
+      return showLeaderboard(interaction);
+    }
+
+    /* ---------------- TICKETS ---------------- */
+
+    if (
+      interaction.isStringSelectMenu() &&
+      interaction.customId === "ticket_type"
+    ) {
+      const type = interaction.values[0];
+
+      if (!TICKET_TYPES[type]) {
+        return interaction.reply({
+          content: "❌ نوع التذكرة غير صحيح.",
+          ephemeral: true,
+        });
+      }
+
+      return createTicket(interaction, type);
+    }
+
+    if (
+      interaction.isButton() &&
+      interaction.customId === "ticket_claim"
+    ) {
+      return claimTicket(interaction);
+    }
+
+    if (
+      interaction.isButton() &&
+      interaction.customId === "ticket_close"
+    ) {
+      return closeTicket(interaction);
+    }
+  } catch (error) {
+    console.error("INTERACTION ERROR:", error);
+
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction
+        .reply({
+          content:
+            "❌ حدث خطأ غير متوقع. حاول مرة أخرى.",
+          ephemeral: true,
+        })
+        .catch(() => {});
+    }
+  }
+});
+
+/* =========================================================
+   MESSAGE EVENTS
+========================================================= */
+
+client.on("messageCreate", async (message) => {
+  try {
+    await handlePermitMessage(message);
+  } catch (error) {
+    console.error("MESSAGE ERROR:", error);
+  }
+});
+
+/* =========================================================
+   READY
+========================================================= */
+
+client.once("ready", async () => {
+  console.log("====================================");
+  console.log(`Logged in as ${client.user.tag}`);
+  console.log(`Server System: ${CONFIG.SERVER_NAME}`);
+  console.log("====================================");
+
+  client.user.setPresence({
+    activities: [
+      {
+        name: `${CONFIG.SERVER_NAME} | Support System`,
+      },
+    ],
+    status: "online",
+  });
+
+  await setupStaffApplicationPanel();
+  await setupAttendancePanel();
+  await setupTicketPanel();
+  await setupPermitPanels();
+
+  console.log("All panels have been checked.");
+});
+
+/* =========================================================
+   PERIODIC PANEL UPDATE
+========================================================= */
+
+setInterval(async () => {
+  try {
+    await setupAttendancePanel();
+  } catch (error) {
+    console.error("ATTENDANCE UPDATE ERROR:", error.message);
+  }
+}, 60 * 1000);
+
+/* =========================================================
+   ERROR HANDLERS
+========================================================= */
+
+process.on("unhandledRejection", (error) => {
+  console.error("UNHANDLED REJECTION:", error);
+});
+
+process.on("uncaughtException", (error) => {
+  console.error("UNCAUGHT EXCEPTION:", error);
+});
+
+/* =========================================================
+   LOGIN
+========================================================= */
+
+if (!process.env.DISCORD_TOKEN) {
+  console.error("❌ DISCORD_TOKEN is missing.");
   process.exit(1);
 }
 
-// ==================================================
-// LOGIN
-// ==================================================
-
-client
-  .login(TOKEN)
-
-  .then(
-    () => {
-
-      console.log(
-        "✅ Discord login successful."
-      );
-    }
-  )
-
-  .catch(
-    error => {
-
-      console.error(
-        "❌ Discord Login Error:",
-        error.message
-      );
-    }
-  );
+client.login(process.env.DISCORD_TOKEN);
