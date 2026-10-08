@@ -39,9 +39,12 @@ const CONFIG = {
   ATTENDANCE_CHANNEL_ID: "1542938449445658816",
   ATTENDANCE_LOG_CHANNEL_ID: "1542938449445658816",
 
-  // Tickets
+  // =======================================================
+  // NEW TICKET SYSTEM
+  // =======================================================
+
   TICKET_CATEGORY_ID: "1536034090082369628",
-  TICKET_LOG_CHANNEL_ID: "1542967957796290580",
+  TICKET_LOG_CHANNEL_ID: "1555962310538043552",
 
   // Permit
   PERMIT_ACCEPT_CHANNEL_ID: "1557646459757658152",
@@ -49,7 +52,7 @@ const CONFIG = {
   PERMIT_PENDING_CHANNEL_ID: "1557646570642735134",
   PERMIT_ROLE_ID: "1535764584152043601",
 
-  // Staff Roles
+  // Old/general staff roles used by other systems
   TICKET_STAFF_ROLE_IDS: [
     "1535755153838313542",
     "1535755234989572226"
@@ -57,6 +60,75 @@ const CONFIG = {
 
   SUPPORT_STAFF_ROLE_ID: "1535755112969015367"
 };
+
+/* =========================================================
+   NEW TICKET DEPARTMENT ROLES
+   ========================================================= */
+
+const TICKET_DEPARTMENTS = {
+  technical: [
+    "1535755003669647410",
+    "1535755153838313542"
+  ],
+
+  moderation: [
+    "1535759833427480576",
+    "1535759964235104326"
+  ],
+
+  development: [
+    "1535762878794305676",
+    "1535763358941192252"
+  ],
+
+  compensation: [
+    "1535757222515310593",
+    "1535757299505696938"
+  ],
+
+  management: [
+    "1535754908261941350",
+    "1540288189128904724"
+  ],
+
+  store: [
+    "1535769580331335680",
+    "1535769709029490778"
+  ],
+
+  voice: [
+    "1535759833427480576",
+    "1535759964235104326",
+    "1535769580331335680"
+  ],
+
+  appeal: [
+    "1535754908261941350",
+    "1535759833427480576",
+    "1535759964235104326",
+    "1537005018819854368"
+  ],
+
+  founders: [
+    "1535754877882474557",
+    "1535755333572763798"
+  ],
+
+  lspd: [
+    "1540263682829975622",
+    "1543248863614214256"
+  ],
+
+  lsmd: [
+    "1543249300484657336",
+    "1542234998252241016"
+  ]
+};
+
+/* =========================================================
+   OLD STAFF ROLE LIST
+   Used by application / permit systems
+   ========================================================= */
 
 const TICKET_STAFF_ROLE_IDS = [
   ...CONFIG.TICKET_STAFF_ROLE_IDS,
@@ -76,6 +148,7 @@ const client = new Client({
     GatewayIntentBits.DirectMessages,
     GatewayIntentBits.GuildVoiceStates
   ],
+
   partials: [
     Partials.Channel
   ]
@@ -85,7 +158,8 @@ const client = new Client({
    DATABASE
    ========================================================= */
 
-const DB_FILE = path.join(__dirname, "database.json");
+const DB_FILE =
+  path.join(__dirname, "database.json");
 
 const defaultDB = {
   applications: {},
@@ -99,7 +173,11 @@ function loadDB() {
     if (!fs.existsSync(DB_FILE)) {
       fs.writeFileSync(
         DB_FILE,
-        JSON.stringify(defaultDB, null, 2)
+        JSON.stringify(
+          defaultDB,
+          null,
+          2
+        )
       );
 
       return JSON.parse(
@@ -108,16 +186,27 @@ function loadDB() {
     }
 
     const data = JSON.parse(
-      fs.readFileSync(DB_FILE, "utf8")
+      fs.readFileSync(
+        DB_FILE,
+        "utf8"
+      )
     );
 
     return {
       ...defaultDB,
       ...data,
-      applications: data.applications || {},
-      attendance: data.attendance || {},
-      tickets: data.tickets || {},
-      panels: data.panels || {}
+
+      applications:
+        data.applications || {},
+
+      attendance:
+        data.attendance || {},
+
+      tickets:
+        data.tickets || {},
+
+      panels:
+        data.panels || {}
     };
   } catch (error) {
     console.error(
@@ -137,7 +226,11 @@ function saveDB() {
   try {
     fs.writeFileSync(
       DB_FILE,
-      JSON.stringify(db, null, 2)
+      JSON.stringify(
+        db,
+        null,
+        2
+      )
     );
   } catch (error) {
     console.error(
@@ -152,9 +245,13 @@ function saveDB() {
    ========================================================= */
 
 function formatDate(timestamp) {
-  if (!timestamp) return "غير معروف";
+  if (!timestamp) {
+    return "غير معروف";
+  }
 
-  return new Date(timestamp).toLocaleString(
+  return new Date(
+    timestamp
+  ).toLocaleString(
     "ar-EG",
     {
       timeZone: "Africa/Cairo",
@@ -170,48 +267,63 @@ function formatDuration(seconds) {
     Math.floor(seconds)
   );
 
-  const hours = Math.floor(
-    seconds / 3600
-  );
+  const hours =
+    Math.floor(
+      seconds / 3600
+    );
 
   seconds %= 3600;
 
-  const minutes = Math.floor(
-    seconds / 60
-  );
+  const minutes =
+    Math.floor(
+      seconds / 60
+    );
 
-  const sec = seconds % 60;
+  const sec =
+    seconds % 60;
 
   const parts = [];
 
   if (hours) {
-    parts.push(`${hours} ساعة`);
+    parts.push(
+      `${hours} ساعة`
+    );
   }
 
   if (minutes) {
-    parts.push(`${minutes} دقيقة`);
+    parts.push(
+      `${minutes} دقيقة`
+    );
   }
 
   if (
     sec ||
     parts.length === 0
   ) {
-    parts.push(`${sec} ثانية`);
+    parts.push(
+      `${sec} ثانية`
+    );
   }
 
-  return parts.join(" و ");
+  return parts.join(
+    " و "
+  );
 }
 
 async function getChannel(id) {
   try {
-    return await client.channels.fetch(id);
+    return await client.channels.fetch(
+      id
+    );
   } catch {
     return null;
   }
 }
 
 function isAdmin(member) {
-  if (!member) return false;
+  if (!member) {
+    return false;
+  }
 
   return member.permissions?.has(
     PermissionFlagsBits.Administrator
@@ -219,7 +331,9 @@ function isAdmin(member) {
 }
 
 function isTicketStaff(member) {
-  if (!member) return false;
+  if (!member) {
+    return false;
+  }
 
   if (isAdmin(member)) {
     return true;
@@ -227,12 +341,16 @@ function isTicketStaff(member) {
 
   return TICKET_STAFF_ROLE_IDS.some(
     (roleId) =>
-      member.roles.cache.has(roleId)
+      member.roles.cache.has(
+        roleId
+      )
   );
 }
 
 function isSupportStaff(member) {
-  if (!member) return false;
+  if (!member) {
+    return false;
+  }
 
   if (isAdmin(member)) {
     return true;
@@ -262,9 +380,10 @@ function getAttendance(userId) {
 }
 
 async function sendLog(text) {
-  const channel = await getChannel(
-    CONFIG.ATTENDANCE_LOG_CHANNEL_ID
-  );
+  const channel =
+    await getChannel(
+      CONFIG.ATTENDANCE_LOG_CHANNEL_ID
+    );
 
   if (channel?.isTextBased()) {
     await channel
@@ -274,9 +393,10 @@ async function sendLog(text) {
 }
 
 async function sendTicketLog(payload) {
-  const channel = await getChannel(
-    CONFIG.TICKET_LOG_CHANNEL_ID
-  );
+  const channel =
+    await getChannel(
+      CONFIG.TICKET_LOG_CHANNEL_ID
+    );
 
   if (channel?.isTextBased()) {
     await channel
@@ -332,9 +452,11 @@ client.on(
           .setTimestamp();
 
       await channel.send({
-        content: `مرحبًا ${member}`,
+        content:
+          `مرحبًا ${member}`,
         embeds: [embed]
       });
+
     } catch (error) {
       console.error(
         "WELCOME ERROR:",
@@ -371,7 +493,9 @@ async function setupApplicationPanel() {
 
   const embed =
     new EmbedBuilder()
-      .setTitle("📋 التقديم على الإدارة")
+      .setTitle(
+        "📋 التقديم على الإدارة"
+      )
       .setDescription(
         "اضغط على الزر بالأسفل لبدء التقديم.\n\n" +
         "سيتم إرسال جميع الأسئلة إليك في الخاص DM.\n" +
@@ -401,19 +525,22 @@ async function setupApplicationPanel() {
 
   const messages =
     await channel.messages
-      .fetch({ limit: 50 })
+      .fetch({
+        limit: 50
+      })
       .catch(() => null);
 
   let oldMessage = null;
 
   if (messages) {
-    oldMessage = messages.find(
-      (msg) =>
-        msg.author.id ===
-          client.user.id &&
-        msg.embeds[0]?.title ===
-          "📋 التقديم على الإدارة"
-    );
+    oldMessage =
+      messages.find(
+        (msg) =>
+          msg.author.id ===
+            client.user.id &&
+          msg.embeds[0]?.title ===
+            "📋 التقديم على الإدارة"
+      );
   }
 
   if (oldMessage) {
@@ -440,8 +567,8 @@ async function startApplication(
     interaction.user.id;
 
   if (
-    db.applications[userId]?.status ===
-    "pending"
+    db.applications[userId]
+      ?.status === "pending"
   ) {
     return interaction.reply({
       content:
@@ -459,6 +586,7 @@ async function startApplication(
     await dm.send(
       "📋 **بدأ التقديم على الإدارة**"
     );
+
   } catch {
     return interaction.reply({
       content:
@@ -480,6 +608,7 @@ async function startApplication(
     i < applicationQuestions.length;
     i++
   ) {
+
     await dm.send(
       `**السؤال ${i + 1}/${applicationQuestions.length}**\n` +
       applicationQuestions[i]
@@ -487,13 +616,17 @@ async function startApplication(
 
     const collected =
       await dm.awaitMessages({
-        filter: (message) =>
-          message.author.id ===
-            interaction.user.id &&
-          !message.author.bot,
+        filter:
+          (message) =>
+            message.author.id ===
+              interaction.user.id &&
+            !message.author.bot,
+
         max: 1,
+
         time:
           10 * 60 * 1000
+
       }).catch(() => null);
 
     if (
@@ -581,6 +714,7 @@ async function startApplication(
   const row =
     new ActionRowBuilder()
       .addComponents(
+
         new ButtonBuilder()
           .setCustomId(
             `app_accept_${userId}`
@@ -612,6 +746,7 @@ async function startApplication(
           .setStyle(
             ButtonStyle.Secondary
           )
+
       );
 
   const sent =
@@ -695,7 +830,9 @@ async function acceptApplication(
   }
 
   try {
-    await member.roles.add(role);
+    await member.roles.add(
+      role
+    );
   } catch {
     return interaction.reply({
       content:
@@ -904,9 +1041,10 @@ async function finishRejectApplication(
   }
 
   const reason =
-    interaction.fields.getTextInputValue(
-      "reason"
-    );
+    interaction.fields
+      .getTextInputValue(
+        "reason"
+      );
 
   application.status =
     "rejected";
@@ -968,12 +1106,18 @@ async function setupAttendancePanel() {
   }
 
   const activeCount =
-    Object.values(db.attendance)
-      .filter((x) => x.active)
+    Object.values(
+      db.attendance
+    )
+      .filter(
+        (x) => x.active
+      )
       .length;
 
   const voiceCount =
-    Object.values(db.attendance)
+    Object.values(
+      db.attendance
+    )
       .filter(
         (x) =>
           x.active &&
@@ -1002,6 +1146,7 @@ async function setupAttendancePanel() {
   const row =
     new ActionRowBuilder()
       .addComponents(
+
         new ButtonBuilder()
           .setCustomId(
             "attendance_in"
@@ -1049,23 +1194,27 @@ async function setupAttendancePanel() {
           .setStyle(
             ButtonStyle.Secondary
           )
+
       );
 
   const messages =
     await channel.messages
-      .fetch({ limit: 50 })
+      .fetch({
+        limit: 50
+      })
       .catch(() => null);
 
   let oldMessage = null;
 
   if (messages) {
-    oldMessage = messages.find(
-      (msg) =>
-        msg.author.id ===
-          client.user.id &&
-        msg.embeds[0]?.title ===
-          "🕐 تسجيل الدخول والخروج"
-    );
+    oldMessage =
+      messages.find(
+        (msg) =>
+          msg.author.id ===
+            client.user.id &&
+          msg.embeds[0]?.title ===
+            "🕐 تسجيل الدخول والخروج"
+      );
   }
 
   if (oldMessage) {
@@ -1113,13 +1262,15 @@ async function attendanceIn(
     });
   }
 
-  const now = Date.now();
+  const now =
+    Date.now();
 
   data.active = true;
   data.startedAt = now;
 
   data.voiceJoinedAt =
-    interaction.member.voice.channelId
+    interaction.member.voice
+      .channelId
       ? now
       : null;
 
@@ -1173,7 +1324,8 @@ async function attendanceOut(
     });
   }
 
-  const now = Date.now();
+  const now =
+    Date.now();
 
   const workSeconds =
     Math.floor(
@@ -1184,7 +1336,8 @@ async function attendanceOut(
   if (data.voiceJoinedAt) {
     data.voiceSeconds +=
       Math.floor(
-        (now - data.voiceJoinedAt) /
+        (now -
+          data.voiceJoinedAt) /
           1000
       );
   }
@@ -1294,7 +1447,9 @@ async function attendanceTop(
   }
 
   const list =
-    Object.entries(db.attendance)
+    Object.entries(
+      db.attendance
+    )
       .sort(
         (a, b) =>
           b[1].points -
@@ -1346,7 +1501,10 @@ async function attendanceTop(
 
 client.on(
   "voiceStateUpdate",
-  async (oldState, newState) => {
+  async (
+    oldState,
+    newState
+  ) => {
     try {
       const member =
         newState.member;
@@ -1359,7 +1517,9 @@ client.on(
       }
 
       const data =
-        getAttendance(member.id);
+        getAttendance(
+          member.id
+        );
 
       if (!data.active) {
         return;
@@ -1385,7 +1545,9 @@ client.on(
         oldChannel &&
         !newChannel
       ) {
-        if (data.voiceJoinedAt) {
+        if (
+          data.voiceJoinedAt
+        ) {
           data.voiceSeconds +=
             Math.floor(
               (Date.now() -
@@ -1399,6 +1561,7 @@ client.on(
           saveDB();
         }
       }
+
     } catch (error) {
       console.error(
         "VOICE ERROR:",
@@ -1409,51 +1572,174 @@ client.on(
 );
 
 /* =========================================================
-   TICKET TYPES
+   NEW TICKET SYSTEM
    ========================================================= */
 
 const TICKET_TYPES = {
-  general: "🆘 الدعم العام",
-  technical: "🛠️ الدعم الفني",
-  player_report: "🚨 بلاغ عن لاعب",
-  bug: "🐛 مشكلة برمجية",
-  compensation: "💰 تعويضات",
-  admin_complaint: "👮 شكوى ضد إداري",
-  store: "🛒 المتجر",
-  permit: "📋 طلب تصريح",
-  voice: "🎙️ تغيير الصوت",
-  appeal: "⚖️ استئناف",
-  founders: "👑 تواصل مع المؤسسين",
-  lspd: "👮 انضمام إلى شرطة لوس سانتوس",
-  lsmc: "🏥 انضمام إلى مستشفى لوس سانتوس",
-  high_management: "🏛️ الإدارة العليا"
+
+  technical: {
+    label:
+      "الدعم الفني",
+
+    emoji:
+      "🛠️",
+
+    roles:
+      TICKET_DEPARTMENTS.technical
+  },
+
+  moderation: {
+    label:
+      "الرقابة",
+
+    emoji:
+      "👁️",
+
+    roles:
+      TICKET_DEPARTMENTS.moderation
+  },
+
+  errors: {
+    label:
+      "إبلاغ عن الأخطاء",
+
+    emoji:
+      "🚨",
+
+    roles:
+      TICKET_DEPARTMENTS.development
+  },
+
+  development: {
+    label:
+      "مشاكل برمجية",
+
+    emoji:
+      "💻",
+
+    roles:
+      TICKET_DEPARTMENTS.development
+  },
+
+  compensation: {
+    label:
+      "التعويضات",
+
+    emoji:
+      "💰",
+
+    roles:
+      TICKET_DEPARTMENTS.compensation
+  },
+
+  admin_complaint: {
+    label:
+      "شكوى ضد إداري",
+
+    emoji:
+      "👮",
+
+    roles:
+      TICKET_DEPARTMENTS.management
+  },
+
+  store: {
+    label:
+      "المتجر",
+
+    emoji:
+      "🛒",
+
+    roles:
+      TICKET_DEPARTMENTS.store
+  },
+
+  voice: {
+    label:
+      "طلب تصريح الصوت",
+
+    emoji:
+      "🎙️",
+
+    roles:
+      TICKET_DEPARTMENTS.voice
+  },
+
+  appeal: {
+    label:
+      "استئناف",
+
+    emoji:
+      "⚖️",
+
+    roles:
+      TICKET_DEPARTMENTS.appeal
+  },
+
+  founders: {
+    label:
+      "تواصل مع المؤسسين",
+
+    emoji:
+      "👑",
+
+    roles:
+      TICKET_DEPARTMENTS.founders
+  },
+
+  lspd: {
+    label:
+      "انضمام إلى شرطة لوس سانتوس",
+
+    emoji:
+      "🚔",
+
+    roles:
+      TICKET_DEPARTMENTS.lspd
+  },
+
+  lsmd: {
+    label:
+      "انضمام إلى مستشفى لوس سانتوس",
+
+    emoji:
+      "🏥",
+
+    roles:
+      TICKET_DEPARTMENTS.lsmd
+  },
+
+  management: {
+    label:
+      "الإدارة العليا",
+
+    emoji:
+      "🏛️",
+
+    roles:
+      TICKET_DEPARTMENTS.management
+  }
 };
 
 /* =========================================================
    TICKET HELPERS
    ========================================================= */
 
-function getValidTicketStaffRoles(
-  guild
-) {
-  return TICKET_STAFF_ROLE_IDS.filter(
-    (roleId) => {
-      const role =
-        guild.roles.cache.get(
-          roleId
-        );
+function getTicketCategory(guild) {
+  const category =
+    guild.channels.cache.get(
+      CONFIG.TICKET_CATEGORY_ID
+    );
 
-      if (!role) {
-        console.warn(
-          `⚠️ Ticket role not found: ${roleId}`
-        );
+  if (
+    !category ||
+    category.type !==
+      ChannelType.GuildCategory
+  ) {
+    return null;
+  }
 
-        return false;
-      }
-
-      return true;
-    }
-  );
+  return category;
 }
 
 function getBotMember(guild) {
@@ -1465,7 +1751,19 @@ function getBotMember(guild) {
   );
 }
 
-function checkTicketPermissions(
+function getValidRoles(
+  guild,
+  roleIds
+) {
+  return roleIds.filter(
+    (roleId) =>
+      guild.roles.cache.has(
+        roleId
+      )
+  );
+}
+
+function checkTicketBotPermissions(
   guild,
   category
 ) {
@@ -1475,8 +1773,8 @@ function checkTicketPermissions(
   if (!botMember) {
     return {
       ok: false,
-      reason:
-        "❌ لم أستطع العثور على Member الخاص بالبوت داخل السيرفر."
+      message:
+        "❌ لم أستطع العثور على عضو البوت داخل السيرفر."
     };
   }
 
@@ -1488,12 +1786,12 @@ function checkTicketPermissions(
   if (!permissions) {
     return {
       ok: false,
-      reason:
-        "❌ لم أستطع قراءة صلاحيات البوت داخل Category التذاكر."
+      message:
+        "❌ لم أستطع قراءة صلاحيات البوت داخل قسم التذاكر."
     };
   }
 
-  const requiredPermissions = [
+  const required = [
     PermissionFlagsBits.ViewChannel,
     PermissionFlagsBits.SendMessages,
     PermissionFlagsBits.ReadMessageHistory,
@@ -1501,19 +1799,19 @@ function checkTicketPermissions(
   ];
 
   const missing =
-    requiredPermissions.filter(
+    required.filter(
       (permission) =>
         !permissions.has(
           permission
         )
     );
 
-  if (missing.length > 0) {
+  if (missing.length) {
     return {
       ok: false,
-      reason:
-        "❌ البوت لا يمتلك الصلاحيات المطلوبة داخل Category التذاكر.\n\n" +
-        "الصلاحيات المطلوبة:\n" +
+      message:
+        "❌ البوت ناقصه صلاحيات في Category التذاكر.\n\n" +
+        "المطلوب:\n" +
         "• View Channel\n" +
         "• Send Messages\n" +
         "• Read Message History\n" +
@@ -1527,199 +1825,6 @@ function checkTicketPermissions(
 }
 
 /* =========================================================
-   TICKET PANEL
-   ========================================================= */
-
-async function setupTicketPanel() {
-  const guild =
-    client.guilds.cache.first();
-
-  if (!guild) {
-    console.error(
-      "❌ لم يتم العثور على السيرفر."
-    );
-
-    return;
-  }
-
-  const category =
-    guild.channels.cache.get(
-      CONFIG.TICKET_CATEGORY_ID
-    );
-
-  if (
-    !category ||
-    category.type !==
-      ChannelType.GuildCategory
-  ) {
-    console.error(
-      `❌ Ticket category غير موجودة: ${CONFIG.TICKET_CATEGORY_ID}`
-    );
-
-    return;
-  }
-
-  const permissionCheck =
-    checkTicketPermissions(
-      guild,
-      category
-    );
-
-  if (!permissionCheck.ok) {
-    console.error(
-      "❌ TICKET PERMISSIONS ERROR:",
-      permissionCheck.reason
-    );
-
-    return;
-  }
-
-  const validStaffRoles =
-    getValidTicketStaffRoles(
-      guild
-    );
-
-  let panel =
-    category.children.cache.find(
-      (channel) =>
-        channel.name ===
-        "ticket-panel"
-    );
-
-  if (!panel) {
-    try {
-      panel =
-        await guild.channels.create({
-          name: "ticket-panel",
-          type: ChannelType.GuildText,
-          parent: category.id,
-
-          permissionOverwrites: [
-            {
-              id: guild.roles.everyone.id,
-
-              allow: [
-                PermissionFlagsBits.ViewChannel,
-                PermissionFlagsBits.ReadMessageHistory
-              ],
-
-              deny: [
-                PermissionFlagsBits.SendMessages
-              ]
-            },
-
-            ...validStaffRoles.map(
-              (roleId) => ({
-                id: roleId,
-
-                allow: [
-                  PermissionFlagsBits.ViewChannel,
-                  PermissionFlagsBits.ReadMessageHistory,
-                  PermissionFlagsBits.SendMessages
-                ]
-              })
-            )
-          ]
-        });
-    } catch (error) {
-      console.error(
-        "❌ CREATE TICKET PANEL ERROR:",
-        error
-      );
-
-      return;
-    }
-  }
-
-  if (!panel) return;
-
-  const options =
-    Object.entries(
-      TICKET_TYPES
-    ).map(
-      ([value, label]) => ({
-        label:
-          label.substring(2),
-        value
-      })
-    );
-
-  const embed =
-    new EmbedBuilder()
-      .setTitle(
-        "🎫 نظام التذاكر"
-      )
-      .setDescription(
-        `مرحبًا بك في **${CONFIG.SERVER_NAME}**.\n\n` +
-        "اختار نوع التذكرة من القائمة بالأسفل.\n" +
-        "سيتم فتح تذكرة خاصة بك مع الإدارة.\n\n" +
-        "⚠️ يرجى عدم فتح تذاكر بدون سبب."
-      )
-      .setColor(0x5865f2)
-      .setFooter({
-        text:
-          `${CONFIG.SERVER_NAME} • Tickets`
-      });
-
-  const menu =
-    new StringSelectMenuBuilder()
-      .setCustomId(
-        "ticket_select"
-      )
-      .setPlaceholder(
-        "اختار نوع التذكرة"
-      )
-      .addOptions(options);
-
-  const row =
-    new ActionRowBuilder()
-      .addComponents(menu);
-
-  const messages =
-    await panel.messages
-      .fetch({ limit: 50 })
-      .catch(() => null);
-
-  let oldMessage = null;
-
-  if (messages) {
-    oldMessage = messages.find(
-      (msg) =>
-        msg.author.id ===
-          client.user.id &&
-        msg.embeds[0]?.title ===
-          "🎫 نظام التذاكر"
-    );
-  }
-
-  if (oldMessage) {
-    await oldMessage.edit({
-      embeds: [embed],
-      components: [row]
-    }).catch((error) => {
-      console.error(
-        "❌ EDIT TICKET PANEL ERROR:",
-        error
-      );
-    });
-  } else {
-    await panel.send({
-      embeds: [embed],
-      components: [row]
-    }).catch((error) => {
-      console.error(
-        "❌ SEND TICKET PANEL ERROR:",
-        error
-      );
-    });
-  }
-
-  console.log(
-    `✅ Ticket system loaded in ${guild.name}`
-  );
-}
-
-/* =========================================================
    FIND USER TICKET
    ========================================================= */
 
@@ -1727,17 +1832,22 @@ async function findUserTicket(
   guild,
   userId
 ) {
+  const category =
+    getTicketCategory(guild);
+
+  if (!category) {
+    return null;
+  }
+
   const channels =
-    guild.channels.cache.values();
+    category.children.cache.values();
 
   for (
     const channel of channels
   ) {
     if (
       channel.type !==
-        ChannelType.GuildText ||
-      channel.parentId !==
-        CONFIG.TICKET_CATEGORY_ID
+      ChannelType.GuildText
     ) {
       continue;
     }
@@ -1758,10 +1868,230 @@ async function findUserTicket(
       ) {
         return channel;
       }
+
     } catch {}
   }
 
   return null;
+}
+
+/* =========================================================
+   SETUP TICKET PANEL
+   ========================================================= */
+
+async function setupTicketPanel() {
+  const guild =
+    client.guilds.cache.first();
+
+  if (!guild) {
+    console.error(
+      "❌ لم يتم العثور على السيرفر."
+    );
+
+    return;
+  }
+
+  const category =
+    getTicketCategory(guild);
+
+  if (!category) {
+    console.error(
+      `❌ Ticket Category غير موجودة: ${CONFIG.TICKET_CATEGORY_ID}`
+    );
+
+    return;
+  }
+
+  const permissionCheck =
+    checkTicketBotPermissions(
+      guild,
+      category
+    );
+
+  if (!permissionCheck.ok) {
+    console.error(
+      permissionCheck.message
+    );
+
+    return;
+  }
+
+  const allTicketRoles = [
+    ...new Set(
+      Object.values(
+        TICKET_DEPARTMENTS
+      ).flat()
+    )
+  ];
+
+  const validTicketRoles =
+    getValidRoles(
+      guild,
+      allTicketRoles
+    );
+
+  let panel =
+    category.children.cache.find(
+      (channel) =>
+        channel.name ===
+        "ticket-panel"
+    );
+
+  if (!panel) {
+    try {
+
+      panel =
+        await guild.channels.create({
+          name:
+            "ticket-panel",
+
+          type:
+            ChannelType.GuildText,
+
+          parent:
+            category.id,
+
+          permissionOverwrites: [
+            {
+              id:
+                guild.roles.everyone.id,
+
+              allow: [
+                PermissionFlagsBits.ViewChannel,
+                PermissionFlagsBits.ReadMessageHistory
+              ],
+
+              deny: [
+                PermissionFlagsBits.SendMessages
+              ]
+            },
+
+            ...validTicketRoles.map(
+              (roleId) => ({
+                id:
+                  roleId,
+
+                allow: [
+                  PermissionFlagsBits.ViewChannel,
+                  PermissionFlagsBits.ReadMessageHistory,
+                  PermissionFlagsBits.SendMessages
+                ]
+              })
+            )
+          ]
+        });
+
+    } catch (error) {
+
+      console.error(
+        "❌ CREATE TICKET PANEL ERROR:",
+        error
+      );
+
+      return;
+    }
+  }
+
+  const options =
+    Object.entries(
+      TICKET_TYPES
+    ).map(
+      ([value, data]) => ({
+        label:
+          data.label,
+
+        value:
+          value,
+
+        emoji:
+          data.emoji
+      })
+    );
+
+  const embed =
+    new EmbedBuilder()
+      .setTitle(
+        `🎫 نظام تذاكر ${CONFIG.SERVER_NAME}`
+      )
+      .setDescription(
+        "مرحبًا بك في نظام التذاكر.\n\n" +
+        "اختار القسم المناسب من القائمة بالأسفل.\n" +
+        "سيتم فتح تذكرة خاصة بك مع الفريق المختص، وسيتم إشعار المسؤولين عن القسم تلقائيًا.\n\n" +
+        "⚠️ يرجى اختيار القسم الصحيح وعدم فتح تذاكر بدون سبب."
+      )
+      .setColor(0x5865f2)
+      .setFooter({
+        text:
+          `${CONFIG.SERVER_NAME} • Ticket System`
+      });
+
+  const menu =
+    new StringSelectMenuBuilder()
+      .setCustomId(
+        "ticket_select"
+      )
+      .setPlaceholder(
+        "اختر نوع التذكرة"
+      )
+      .addOptions(
+        options
+      );
+
+  const row =
+    new ActionRowBuilder()
+      .addComponents(
+        menu
+      );
+
+  const messages =
+    await panel.messages
+      .fetch({
+        limit: 50
+      })
+      .catch(() => null);
+
+  let oldMessage = null;
+
+  if (messages) {
+    oldMessage =
+      messages.find(
+        (msg) =>
+          msg.author.id ===
+            client.user.id &&
+          msg.embeds[0]?.title ===
+            `🎫 نظام تذاكر ${CONFIG.SERVER_NAME}`
+      );
+  }
+
+  if (oldMessage) {
+
+    await oldMessage.edit({
+      embeds: [embed],
+      components: [row]
+    }).catch((error) => {
+      console.error(
+        "❌ EDIT TICKET PANEL ERROR:",
+        error
+      );
+    });
+
+  } else {
+
+    await panel.send({
+      embeds: [embed],
+      components: [row]
+    }).catch((error) => {
+      console.error(
+        "❌ SEND TICKET PANEL ERROR:",
+        error
+      );
+    });
+
+  }
+
+  console.log(
+    "✅ New Ticket System Loaded."
+  );
 }
 
 /* =========================================================
@@ -1783,6 +2113,42 @@ async function createTicket(
     });
   }
 
+  const ticketType =
+    TICKET_TYPES[type];
+
+  if (!ticketType) {
+    return interaction.reply({
+      content:
+        "❌ نوع التذكرة غير صحيح.",
+      ephemeral: true
+    });
+  }
+
+  const category =
+    getTicketCategory(guild);
+
+  if (!category) {
+    return interaction.reply({
+      content:
+        "❌ Category التذاكر غير موجودة أو الـID غير صحيح.",
+      ephemeral: true
+    });
+  }
+
+  const permissionCheck =
+    checkTicketBotPermissions(
+      guild,
+      category
+    );
+
+  if (!permissionCheck.ok) {
+    return interaction.reply({
+      content:
+        permissionCheck.message,
+      ephemeral: true
+    });
+  }
+
   const existing =
     await findUserTicket(
       guild,
@@ -1797,60 +2163,19 @@ async function createTicket(
     });
   }
 
-  const category =
-    guild.channels.cache.get(
-      CONFIG.TICKET_CATEGORY_ID
+  const validRoles =
+    getValidRoles(
+      guild,
+      ticketType.roles
     );
 
-  if (
-    !category ||
-    category.type !==
-      ChannelType.GuildCategory
-  ) {
+  if (!validRoles.length) {
     return interaction.reply({
       content:
-        "❌ Category التذاكر غير موجودة أو الـID غير صحيح.",
+        "❌ لا يوجد أي Role صالح لهذا القسم. تأكد من الـIDs.",
       ephemeral: true
     });
   }
-
-  const botMember =
-    getBotMember(guild);
-
-  if (!botMember) {
-    return interaction.reply({
-      content:
-        "❌ لم أستطع العثور على البوت داخل السيرفر.",
-      ephemeral: true
-    });
-  }
-
-  const permissions =
-    category.permissionsFor(
-      botMember
-    );
-
-  if (
-    !permissions?.has(
-      PermissionFlagsBits.ManageChannels
-    )
-  ) {
-    return interaction.reply({
-      content:
-        "❌ البوت لا يمتلك صلاحية **Manage Channels** داخل Category التذاكر.\n\n" +
-        "أعطِ البوت:\n" +
-        "• Manage Channels\n" +
-        "• View Channel\n" +
-        "• Send Messages\n" +
-        "• Read Message History",
-      ephemeral: true
-    });
-  }
-
-  const validStaffRoles =
-    getValidTicketStaffRoles(
-      guild
-    );
 
   const safeName =
     interaction.user.username
@@ -1862,9 +2187,10 @@ async function createTicket(
       .slice(0, 20) ||
     "user";
 
-  let channel;
+  let channel = null;
 
   try {
+
     channel =
       await guild.channels.create({
         name:
@@ -1876,12 +2202,16 @@ async function createTicket(
         parent:
           category.id,
 
+        lockPermissions:
+          false,
+
         topic:
           JSON.stringify({
             ownerId:
               interaction.user.id,
 
-            type,
+            type:
+              type,
 
             claimedBy:
               null,
@@ -1891,6 +2221,8 @@ async function createTicket(
           }),
 
         permissionOverwrites: [
+
+          // Everyone
           {
             id:
               guild.roles.everyone.id,
@@ -1900,6 +2232,7 @@ async function createTicket(
             ]
           },
 
+          // Ticket owner
           {
             id:
               interaction.user.id,
@@ -1912,9 +2245,11 @@ async function createTicket(
             ]
           },
 
-          ...validStaffRoles.map(
+          // Department staff only
+          ...validRoles.map(
             (roleId) => ({
-              id: roleId,
+              id:
+                roleId,
 
               allow: [
                 PermissionFlagsBits.ViewChannel,
@@ -1924,9 +2259,12 @@ async function createTicket(
               ]
             })
           )
+
         ]
       });
+
   } catch (error) {
+
     console.error(
       "=================================="
     );
@@ -1942,15 +2280,15 @@ async function createTicket(
     );
 
     console.error(
-      "User:",
-      interaction.user.id,
-      interaction.user.tag
-    );
-
-    console.error(
       "Category:",
       category.id,
       category.name
+    );
+
+    console.error(
+      "User:",
+      interaction.user.id,
+      interaction.user.tag
     );
 
     console.error(
@@ -1965,7 +2303,12 @@ async function createTicket(
     return interaction.reply({
       content:
         "❌ لم أستطع إنشاء التذكرة.\n\n" +
-        "تأكد أن البوت لديه **Manage Channels** وأن Category التذاكر صحيحة.",
+        "تأكد من صلاحيات البوت داخل Category التذاكر:\n" +
+        "• View Channel\n" +
+        "• Send Messages\n" +
+        "• Read Message History\n" +
+        "• Manage Channels",
+
       ephemeral: true
     });
   }
@@ -1982,9 +2325,11 @@ async function createTicket(
     ownerId:
       interaction.user.id,
 
-    type,
+    type:
+      type,
 
-    claimedBy: null,
+    claimedBy:
+      null,
 
     createdAt:
       Date.now()
@@ -1992,36 +2337,73 @@ async function createTicket(
 
   saveDB();
 
+  /* =======================================================
+     ROLE MENTIONS
+  ======================================================= */
+
+  const roleMentions =
+    validRoles
+      .map(
+        (roleId) =>
+          `<@&${roleId}>`
+      )
+      .join(" ");
+
   const embed =
     new EmbedBuilder()
       .setTitle(
-        "🎫 تم فتح التذكرة"
+        `${ticketType.emoji} ${ticketType.label}`
       )
       .setDescription(
-        `${interaction.user}\n\n` +
-        `**نوع التذكرة:** ${
-          TICKET_TYPES[type] ||
-          type
-        }\n\n` +
-        "يرجى كتابة المشكلة بالتفصيل.\n" +
-        "سيقوم أحد أعضاء الإدارة باستلام التذكرة.\n\n" +
-        `**${CONFIG.SERVER_NAME}**`
+        `مرحبًا ${interaction.user}\n\n` +
+
+        `تم فتح تذكرتك في قسم **${ticketType.label}**.\n\n` +
+
+        "يرجى شرح طلبك بالتفصيل، وسيقوم الفريق المختص بالرد عليك.\n\n" +
+
+        `🔔 **الفريق المسؤول:**\n${roleMentions}`
+      )
+      .addFields(
+        {
+          name:
+            "صاحب التذكرة",
+
+          value:
+            `${interaction.user}`,
+
+          inline:
+            true
+        },
+
+        {
+          name:
+            "نوع التذكرة",
+
+          value:
+            `${ticketType.emoji} ${ticketType.label}`,
+
+          inline:
+            true
+        }
       )
       .setColor(0x57f287)
+      .setTimestamp()
       .setFooter({
         text:
           `${CONFIG.SERVER_NAME} • Tickets`
-      })
-      .setTimestamp();
+      });
 
-  const row =
+  const buttons =
     new ActionRowBuilder()
       .addComponents(
+
         new ButtonBuilder()
           .setCustomId(
             "ticket_claim"
           )
-          .setLabel("استلام")
+          .setLabel(
+            "استلام التذكرة"
+          )
           .setEmoji("📥")
           .setStyle(
             ButtonStyle.Primary
@@ -2031,42 +2413,67 @@ async function createTicket(
           .setCustomId(
             "ticket_close"
           )
-          .setLabel("إغلاق")
+          .setLabel(
+            "إغلاق التذكرة"
+          )
           .setEmoji("🔒")
           .setStyle(
             ButtonStyle.Danger
           )
+
       );
 
   try {
+
     await channel.send({
       content:
-        `<@${interaction.user.id}>`,
-      embeds: [embed],
-      components: [row]
+        `${interaction.user}\n\n${roleMentions}`,
+
+      embeds:
+        [embed],
+
+      components:
+        [buttons],
+
+      allowedMentions: {
+        users: [
+          interaction.user.id
+        ],
+
+        roles:
+          validRoles
+      }
     });
+
   } catch (error) {
+
     console.error(
       "❌ SEND TICKET MESSAGE ERROR:",
       error
     );
+
   }
 
   await sendTicketLog(
-    `🎫 **تم فتح تذكرة**\n` +
-    `العضو: <@${interaction.user.id}>\n` +
-    `النوع: ${
-      TICKET_TYPES[type] ||
-      type
-    }\n` +
-    `التذكرة: ${channel}\n` +
-    `السيرفر: **${CONFIG.SERVER_NAME}**`
+    `🎫 **تم فتح تذكرة جديدة**\n\n` +
+
+    `👤 العضو: ${interaction.user}\n` +
+
+    `📋 القسم: **${ticketType.emoji} ${ticketType.label}**\n` +
+
+    `🎟️ التذكرة: ${channel}\n` +
+
+    `🔔 المسؤولون: ${roleMentions}\n` +
+
+    `🆔 User ID: \`${interaction.user.id}\``
   );
 
   return interaction.reply({
     content:
-      `✅ تم فتح التذكرة بنجاح: ${channel}`,
-    ephemeral: true
+      `✅ تم فتح تذكرتك بنجاح: ${channel}`,
+
+    ephemeral:
+      true
   });
 }
 
@@ -2077,20 +2484,20 @@ async function createTicket(
 async function claimTicket(
   interaction
 ) {
+  const channel =
+    interaction.channel;
+
   if (
-    !isTicketStaff(
-      interaction.member
-    )
+    !channel ||
+    channel.parentId !==
+      CONFIG.TICKET_CATEGORY_ID
   ) {
     return interaction.reply({
       content:
-        "❌ استلام التذكرة للإداريين فقط.",
+        "❌ هذه ليست تذكرة.",
       ephemeral: true
     });
   }
-
-  const channel =
-    interaction.channel;
 
   let data;
 
@@ -2103,6 +2510,41 @@ async function claimTicket(
     return interaction.reply({
       content:
         "❌ بيانات التذكرة غير صحيحة.",
+      ephemeral: true
+    });
+  }
+
+  const ticketType =
+    TICKET_TYPES[data.type];
+
+  if (!ticketType) {
+    return interaction.reply({
+      content:
+        "❌ نوع التذكرة غير معروف.",
+      ephemeral: true
+    });
+  }
+
+  const isAdminUser =
+    isAdmin(
+      interaction.member
+    );
+
+  const isDepartmentStaff =
+    ticketType.roles.some(
+      (roleId) =>
+        interaction.member.roles.cache.has(
+          roleId
+        )
+    );
+
+  if (
+    !isAdminUser &&
+    !isDepartmentStaff
+  ) {
+    return interaction.reply({
+      content:
+        "❌ استلام هذه التذكرة متاح فقط للفريق المسؤول عن هذا القسم.",
       ephemeral: true
     });
   }
@@ -2124,7 +2566,9 @@ async function claimTicket(
     )
     .catch(() => {});
 
-  if (db.tickets[channel.id]) {
+  if (
+    db.tickets[channel.id]
+  ) {
     db.tickets[
       channel.id
     ].claimedBy =
@@ -2139,7 +2583,8 @@ async function claimTicket(
   attendance.ticketsClaimed +=
     1;
 
-  attendance.points += 1;
+  attendance.points +=
+    1;
 
   saveDB();
 
@@ -2148,9 +2593,15 @@ async function claimTicket(
   );
 
   await sendTicketLog(
-    `📥 **تم استلام تذكرة**\n` +
-    `التذكرة: ${channel}\n` +
-    `بواسطة: ${interaction.user}`
+    `📥 **تم استلام تذكرة**\n\n` +
+
+    `🎟️ التذكرة: ${channel}\n` +
+
+    `📋 القسم: **${ticketType.label}**\n` +
+
+    `👤 صاحب التذكرة: <@${data.ownerId}>\n` +
+
+    `👮 المستلم: ${interaction.user}`
   );
 }
 
@@ -2164,6 +2615,18 @@ async function closeTicket(
   const channel =
     interaction.channel;
 
+  if (
+    !channel ||
+    channel.parentId !==
+      CONFIG.TICKET_CATEGORY_ID
+  ) {
+    return interaction.reply({
+      content:
+        "❌ هذه ليست تذكرة.",
+      ephemeral: true
+    });
+  }
+
   let data;
 
   try {
@@ -2174,24 +2637,39 @@ async function closeTicket(
   } catch {
     return interaction.reply({
       content:
-        "❌ هذه ليست تذكرة صحيحة.",
+        "❌ بيانات التذكرة غير صحيحة.",
       ephemeral: true
     });
   }
+
+  const ticketType =
+    TICKET_TYPES[data.type];
 
   const isOwner =
     data.ownerId ===
     interaction.user.id;
 
-  const staff =
-    isTicketStaff(
+  const isAdminUser =
+    isAdmin(
       interaction.member
     );
 
-  if (!isOwner && !staff) {
+  const isDepartmentStaff =
+    ticketType?.roles.some(
+      (roleId) =>
+        interaction.member.roles.cache.has(
+          roleId
+        )
+    );
+
+  if (
+    !isOwner &&
+    !isAdminUser &&
+    !isDepartmentStaff
+  ) {
     return interaction.reply({
       content:
-        "❌ ليس لديك صلاحية إغلاق التذكرة.",
+        "❌ ليس لديك صلاحية إغلاق هذه التذكرة.",
       ephemeral: true
     });
   }
@@ -2223,27 +2701,37 @@ async function closeTicket(
   if (owner) {
     await owner.send(
       `🔒 **تم إغلاق التذكرة الخاصة بك في ${CONFIG.SERVER_NAME}.**\n\n` +
+
       `النوع: ${
-        TICKET_TYPES[data.type] ||
-        data.type
+        ticketType
+          ? ticketType.label
+          : data.type
       }\n` +
+
       `تم الإغلاق بواسطة: ${interaction.user.tag}`
     ).catch(() => {});
   }
 
   await sendTicketLog(
-    `🔒 **تم إغلاق تذكرة**\n` +
-    `العضو: <@${data.ownerId}>\n` +
-    `النوع: ${
-      TICKET_TYPES[data.type] ||
-      data.type
-    }\n` +
-    `المستلم: ${
+    `🔒 **تم إغلاق تذكرة**\n\n` +
+
+    `🎟️ التذكرة: ${channel.name}\n` +
+
+    `👤 العضو: <@${data.ownerId}>\n` +
+
+    `📋 القسم: **${
+      ticketType
+        ? ticketType.label
+        : data.type
+    }**\n` +
+
+    `📥 المستلم: ${
       data.claimedBy
         ? `<@${data.claimedBy}>`
         : "لم يتم الاستلام"
     }\n` +
-    `أغلقها: ${interaction.user}`
+
+    `🔒 أغلقها: ${interaction.user}`
   );
 
   delete db.tickets[
@@ -2252,11 +2740,21 @@ async function closeTicket(
 
   saveDB();
 
-  setTimeout(() => {
-    channel.delete(
-      "Ticket closed"
-    ).catch(() => {});
-  }, 3000);
+  setTimeout(
+    () => {
+      channel.delete(
+        "Ticket closed"
+      ).catch(
+        (error) => {
+          console.error(
+            "DELETE TICKET ERROR:",
+            error
+          );
+        }
+      );
+    },
+    3000
+  );
 }
 
 /* =========================================================
@@ -2265,6 +2763,7 @@ async function closeTicket(
 
 async function setupPermitPanels() {
   const list = [
+
     {
       id:
         CONFIG.PERMIT_ACCEPT_CHANNEL_ID,
@@ -2303,13 +2802,17 @@ async function setupPermitPanels() {
         "اكتب Discord ID فقط.\n\n" +
         "سيصل العضو DM بأن طلبه قيد المراجعة."
     }
+
   ];
 
   for (
     const item of list
   ) {
+
     const channel =
-      await getChannel(item.id);
+      await getChannel(
+        item.id
+      );
 
     if (
       !channel?.isTextBased()
@@ -2319,15 +2822,21 @@ async function setupPermitPanels() {
 
     const embed =
       new EmbedBuilder()
-        .setTitle(item.title)
+        .setTitle(
+          item.title
+        )
         .setDescription(
           item.description
         )
-        .setColor(0x5865f2);
+        .setColor(
+          0x5865f2
+        );
 
     const messages =
       await channel.messages
-        .fetch({ limit: 30 })
+        .fetch({
+          limit: 30
+        })
         .catch(() => null);
 
     const old =
@@ -2340,13 +2849,17 @@ async function setupPermitPanels() {
       );
 
     if (old) {
+
       await old.edit({
         embeds: [embed]
       });
+
     } else {
+
       await channel.send({
         embeds: [embed]
       });
+
     }
   }
 }
@@ -2390,8 +2903,12 @@ async function handlePermitMessage(
   }
 
   if (
-    !isAdmin(message.member) &&
-    !isTicketStaff(message.member)
+    !isAdmin(
+      message.member
+    ) &&
+    !isTicketStaff(
+      message.member
+    )
   ) {
     return message.reply(
       "❌ هذا النظام للإدارة فقط."
@@ -2402,7 +2919,10 @@ async function handlePermitMessage(
     message.content.trim();
 
   // ACCEPT
-  if (mode === "accept") {
+  if (
+    mode === "accept"
+  ) {
+
     if (
       !/^\d{15,25}$/.test(
         content
@@ -2436,13 +2956,17 @@ async function handlePermitMessage(
     }
 
     try {
+
       await member.roles.add(
         role
       );
+
     } catch {
+
       return message.reply(
         "❌ لم أستطع إعطاء الرول. تأكد أن رول البوت أعلى من الرول."
       );
+
     }
 
     await message.reply(
@@ -2457,7 +2981,10 @@ async function handlePermitMessage(
   }
 
   // PENDING
-  if (mode === "pending") {
+  if (
+    mode === "pending"
+  ) {
+
     if (
       !/^\d{15,25}$/.test(
         content
@@ -2490,7 +3017,10 @@ async function handlePermitMessage(
   }
 
   // REJECT
-  if (mode === "reject") {
+  if (
+    mode === "reject"
+  ) {
+
     const parts =
       content.split("|");
 
@@ -2543,8 +3073,13 @@ async function handlePermitMessage(
 client.on(
   "interactionCreate",
   async (interaction) => {
+
     try {
-      // Application start
+
+      // ==========================================
+      // STAFF APPLICATION
+      // ==========================================
+
       if (
         interaction.isButton() &&
         interaction.customId ===
@@ -2555,13 +3090,13 @@ client.on(
         );
       }
 
-      // Application accept
       if (
         interaction.isButton() &&
         interaction.customId.startsWith(
           "app_accept_"
         )
       ) {
+
         const userId =
           interaction.customId.replace(
             "app_accept_",
@@ -2574,13 +3109,13 @@ client.on(
         );
       }
 
-      // Application pending
       if (
         interaction.isButton() &&
         interaction.customId.startsWith(
           "app_pending_"
         )
       ) {
+
         const userId =
           interaction.customId.replace(
             "app_pending_",
@@ -2593,13 +3128,13 @@ client.on(
         );
       }
 
-      // Application reject
       if (
         interaction.isButton() &&
         interaction.customId.startsWith(
           "app_reject_"
         )
       ) {
+
         const userId =
           interaction.customId.replace(
             "app_reject_",
@@ -2612,13 +3147,13 @@ client.on(
         );
       }
 
-      // Reject modal
       if (
         interaction.isModalSubmit() &&
         interaction.customId.startsWith(
           "reject_reason_"
         )
       ) {
+
         if (
           !isAdmin(
             interaction.member
@@ -2646,7 +3181,10 @@ client.on(
         );
       }
 
-      // Attendance
+      // ==========================================
+      // ATTENDANCE
+      // ==========================================
+
       if (
         interaction.isButton() &&
         interaction.customId ===
@@ -2687,40 +3225,46 @@ client.on(
         );
       }
 
-      // Ticket select
+      // ==========================================
+      // NEW TICKET SYSTEM
+      // ==========================================
+
       if (
         interaction.isStringSelectMenu() &&
         interaction.customId ===
           "ticket_select"
       ) {
+
         return createTicket(
           interaction,
           interaction.values[0]
         );
       }
 
-      // Ticket claim
       if (
         interaction.isButton() &&
         interaction.customId ===
           "ticket_claim"
       ) {
+
         return claimTicket(
           interaction
         );
       }
 
-      // Ticket close
       if (
         interaction.isButton() &&
         interaction.customId ===
           "ticket_close"
       ) {
+
         return closeTicket(
           interaction
         );
       }
+
     } catch (error) {
+
       console.error(
         "INTERACTION ERROR:",
         error
@@ -2730,6 +3274,7 @@ client.on(
         !interaction.replied &&
         !interaction.deferred
       ) {
+
         await interaction
           .reply({
             content:
@@ -2737,6 +3282,7 @@ client.on(
             ephemeral: true
           })
           .catch(() => {});
+
       }
     }
   }
@@ -2749,15 +3295,20 @@ client.on(
 client.on(
   "messageCreate",
   async (message) => {
+
     try {
+
       await handlePermitMessage(
         message
       );
+
     } catch (error) {
+
       console.error(
         "MESSAGE ERROR:",
         error
       );
+
     }
   }
 );
@@ -2769,6 +3320,7 @@ client.on(
 client.once(
   "ready",
   async () => {
+
     console.log(
       "=================================="
     );
@@ -2786,7 +3338,8 @@ client.once(
     );
 
     client.user.setPresence({
-      status: "online",
+      status:
+        "online",
 
       activities: [
         {
@@ -2797,8 +3350,11 @@ client.once(
     });
 
     await setupApplicationPanel();
+
     await setupAttendancePanel();
+
     await setupTicketPanel();
+
     await setupPermitPanels();
 
     console.log(
@@ -2813,8 +3369,10 @@ client.once(
 
 setInterval(
   async () => {
+
     await setupAttendancePanel()
       .catch(() => {});
+
   },
   60000
 );
@@ -2826,20 +3384,24 @@ setInterval(
 process.on(
   "unhandledRejection",
   (error) => {
+
     console.error(
       "UNHANDLED REJECTION:",
       error
     );
+
   }
 );
 
 process.on(
   "uncaughtException",
   (error) => {
+
     console.error(
       "UNCAUGHT EXCEPTION:",
       error
     );
+
   }
 );
 
@@ -2850,6 +3412,7 @@ process.on(
 if (
   !process.env.DISCORD_TOKEN
 ) {
+
   console.error(
     "❌ DISCORD_TOKEN is missing from Railway Variables."
   );
